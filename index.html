@@ -1,610 +1,1644 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="每日跟读">
-    <title>每日跟读</title>
+    <title>每日跟读 - Daily Reading</title>
+    
+    <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Confetti for celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; overflow: hidden; }
+        :root {
+            --primary-purple: #8B5CF6;
+            --primary-purple-dark: #7C3AED;
+            --bg-warm: #FFFBF5;
+            --bg-purple-light: #F5F3FF;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --shadow-soft: 0 4px 20px rgba(139, 92, 246, 0.15);
+            --shadow-strong: 0 8px 30px rgba(139, 92, 246, 0.25);
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex; flex-direction: column;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
+            min-height: 100vh;
+            min-height: 100dvh;
+            color: var(--text-primary);
+            overflow: hidden;
         }
 
-        header {
-            height: 56px; padding: 0 16px;
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            display: flex; align-items: center; gap: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .app-logo { font-size: 26px; }
-        #book-title {
-            flex: 1; color: #fff; font-weight: 600; font-size: 17px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        #article-selector {
-            padding: 8px 12px; border-radius: 8px; border: none;
-            background: rgba(255,255,255,0.95); font-size: 14px;
-            max-width: 180px; cursor: pointer;
+        /* ==================== Library View ==================== */
+        .library-view {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
         }
 
-        .main-content {
-            flex: 1; padding: 10px;
-            display: flex; flex-direction: column;
-            overflow: hidden; min-height: 0;
+        .library-header {
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .swiper-container {
-            flex: 1; width: 100%; max-width: 700px;
-            margin: 0 auto; border-radius: 20px;
-            overflow: hidden; background: #fff;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
-            display: flex; flex-direction: column;
+        .library-title {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
         }
-        .swiper { width: 100%; height: 100%; }
-        .swiper-slide { height: 100%; display: flex !important; flex-direction: column; }
-        .slide-image {
-            height: 50%; min-height: 200px;
-            background-color: #f0f0f5;
-            background-size: contain;
-            background-position: center;
-            background-repeat: no-repeat;
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 10px 16px;
+            border-radius: 50px;
+            color: white;
+            font-weight: 600;
         }
-        .slide-text {
-            height: 50%; padding: 16px 20px;
-            overflow-y: auto; -webkit-overflow-scrolling: touch;
-            background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+
+        .streak-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .book-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 24px 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            align-content: start;
+        }
+
+        .book-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .book-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .book-card:active {
+            transform: scale(0.98);
+        }
+
+        .book-cover {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+            background: var(--bg-purple-light);
+        }
+
+        .book-info {
+            padding: 12px 14px;
+        }
+
+        .book-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* ==================== Reader View ==================== */
+        .reader-view {
+            display: none;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        .reader-view.active {
+            display: grid;
+        }
+
+        /* Landscape: Left-Right Split */
+        @media (orientation: landscape) {
+            .reader-view.active {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr;
+            }
+        }
+
+        /* Portrait: Top-Bottom Split */
+        @media (orientation: portrait) {
+            .reader-view.active {
+                grid-template-columns: 1fr;
+                grid-template-rows: 50% 50%;
+            }
+        }
+
+        /* Image Panel (Left / Top) */
+        .image-panel {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .swiper {
+            width: 100%;
+            height: 100%;
+        }
+
+        .swiper-slide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page-image {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+
+        .back-btn {
+            position: absolute;
+            top: calc(var(--safe-top) + 16px);
+            left: calc(var(--safe-left) + 16px);
+            z-index: 100;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .back-btn:active {
+            transform: scale(0.9);
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Text Panel (Right / Bottom) */
+        .text-panel {
+            background: var(--bg-warm);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .reader-header {
+            padding: 16px 20px;
+            padding-top: calc(var(--safe-top) + 16px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+        }
+
+        @media (orientation: landscape) {
+            .reader-header {
+                padding-top: 16px;
+            }
+        }
+
+        .reader-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-purple);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .reader-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .reader-streak {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            padding: 0 20px;
+            padding-top: 12px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: rgba(139, 92, 246, 0.15);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-purple), #A78BFA);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        /* Text Content */
+        .text-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            font-size: 22px;
+            line-height: 1.8;
+            color: var(--text-primary);
         }
 
         .sentence {
             display: inline;
-            font-size: 20px; line-height: 1.8;
-            color: #333; padding: 4px 6px;
-            border-radius: 6px; cursor: pointer;
-            transition: all 0.2s ease;
+            cursor: pointer;
+            padding: 2px 0;
+            border-radius: 4px;
+            transition: all 0.2s;
         }
-        .sentence:hover { background: rgba(102,126,234,0.1); }
+
+        .sentence:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
         .sentence.active {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            box-shadow: 0 2px 8px rgba(255,193,7,0.3);
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--primary-purple-dark);
         }
+
         .sentence.playing {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(167, 139, 250, 0.3));
         }
 
-        .page-nav {
-            display: flex; justify-content: center;
-            gap: 8px; padding: 8px 0;
-        }
-        .page-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.4);
-            transition: 0.2s;
-        }
-        .page-dot.active {
-            width: 24px; border-radius: 4px;
-            background: #fff;
+        .word {
+            cursor: pointer;
+            transition: all 0.15s;
+            border-radius: 3px;
         }
 
-        footer {
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255,255,255,0.1);
+        .word:hover {
+            background: rgba(139, 92, 246, 0.15);
         }
 
-        .controls { max-width: 700px; margin: 0 auto; }
+        .word.highlighted {
+            background: var(--primary-purple);
+            color: white;
+            padding: 0 2px;
+        }
 
-        .speed-row {
-            display: flex; align-items: center;
-            gap: 8px; margin-bottom: 10px;
-            color: rgba(255,255,255,0.9); font-size: 13px;
+        .loop-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--primary-purple);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 6px;
+            animation: pulse 0.5s ease-in-out infinite alternate;
         }
-        #speed-slider {
-            flex: 1; height: 4px;
-            -webkit-appearance: none; appearance: none;
-            background: rgba(255,255,255,0.3);
-            border-radius: 2px; outline: none;
-        }
-        #speed-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            width: 20px; height: 20px;
-            background: #fff; border-radius: 50%;
-            cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-        #speed-value { min-width: 36px; text-align: center; font-weight: 600; }
-
-        .btn-row {
-            display: flex; gap: 10px;
-        }
-        .btn {
-            flex: 1; height: 52px;
-            border: none; border-radius: 14px;
-            font-size: 15px; font-weight: 600;
-            color: #fff; cursor: pointer;
-            display: flex; align-items: center;
-            justify-content: center; gap: 6px;
-            transition: all 0.2s ease;
-        }
-        .btn:active { transform: scale(0.96); }
-        .btn-listen { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); }
-        .btn-record { background: linear-gradient(135deg, #FF3B30 0%, #FF6B6B 100%); }
-        .btn-record.recording {
-            background: linear-gradient(135deg, #FF3B30 0%, #FF2D55 100%);
-            animation: pulse 1s infinite;
-        }
-        .btn-playback { background: linear-gradient(135deg, #34C759 0%, #30D158 100%); }
-        .btn-playback:disabled { background: #8E8E93; opacity: 0.6; }
 
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0.5); }
-            50% { box-shadow: 0 0 0 12px rgba(255,59,48,0); }
+            from { opacity: 0.7; }
+            to { opacity: 1; }
         }
 
-        .btn-auto {
-            width: 100%; margin-top: 10px;
-            background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+        /* Control Footer */
+        .control-footer {
+            padding: 16px 20px;
+            padding-bottom: calc(var(--safe-bottom) + 16px);
+            background: white;
+            border-top: 1px solid rgba(139, 92, 246, 0.1);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
         }
-        .btn-auto.playing { background: linear-gradient(135deg, #8E8E93 0%, #636366 100%); }
 
-        .placeholder-slide {
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            height: 100%; color: #888; font-size: 16px;
-            text-align: center; padding: 30px;
+        @media (orientation: landscape) {
+            .control-footer {
+                padding-bottom: 16px;
+            }
         }
-        .placeholder-slide .icon { font-size: 56px; margin-bottom: 16px; }
 
-        .status-bar {
-            text-align: center; font-size: 12px;
+        .control-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-purple-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:active {
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-purple-light);
+            color: var(--primary-purple);
+        }
+
+        .btn-secondary:active {
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .btn-record {
+            background: linear-gradient(135deg, #EF4444, #DC2626);
+            color: white;
+        }
+
+        .btn-record.recording {
+            animation: recording-pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes recording-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+        }
+
+        .btn-autoplay {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+        }
+
+        .btn-autoplay.playing {
+            background: linear-gradient(135deg, #F59E0B, #D97706);
+        }
+
+        /* Speed Slider */
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            justify-content: center;
+        }
+
+        .speed-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            min-width: 60px;
+        }
+
+        .speed-slider {
+            width: 120px;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-purple);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Dictionary Popup */
+        .dict-popup {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+
+        .dict-popup.active {
+            transform: translateY(0);
+        }
+
+        .dict-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+
+        .dict-word {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-purple);
+        }
+
+        .dict-phonetic {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-left: 10px;
+        }
+
+        .dict-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f3f4f6;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dict-content {
+            padding: 16px 20px;
+        }
+
+        .dict-meaning {
+            margin-bottom: 12px;
+        }
+
+        .dict-pos {
+            font-size: 12px;
+            color: white;
+            background: var(--primary-purple);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+
+        .dict-def {
+            font-size: 16px;
+            color: var(--text-primary);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .dict-example {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        .dict-loading {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+        }
+
+        .dict-speak-btn {
+            background: var(--bg-purple-light);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 8px;
+        }
+
+        /* Overlay for popup */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 999;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Name Input Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-emoji {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: var(--radius-md);
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .modal-input:focus {
+            border-color: var(--primary-purple);
+        }
+
+        .modal-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 16px;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-purple-dark));
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-family: inherit;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Celebration Modal */
+        .celebration-modal {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.6);
+            z-index: 3000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .celebration-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .celebration-content {
+            background: white;
+            padding: 40px;
+            border-radius: var(--radius-lg);
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            transform: scale(0.8);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .celebration-modal.active .celebration-content {
+            transform: scale(1);
+        }
+
+        .celebration-stars {
+            font-size: 48px;
+            margin-bottom: 16px;
+            animation: bounce 0.6s ease infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+
+        .celebration-title {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-purple), #F472B6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+        }
+
+        .celebration-message {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .celebration-btn {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-purple-dark));
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* Hide in portrait */
+        @media (orientation: portrait) {
+            .back-btn {
+                top: 10px;
+                left: 10px;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
             color: rgba(255,255,255,0.7);
-            margin-top: 8px;
+            font-size: 18px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Swiper Navigation Custom */
+        .swiper-button-next,
+        .swiper-button-prev {
+            color: white;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        .swiper-button-next::after,
+        .swiper-button-prev::after {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .swiper-pagination-bullet {
+            background: white;
+            opacity: 0.5;
+        }
+
+        .swiper-pagination-bullet-active {
+            opacity: 1;
+            background: white;
         }
     </style>
 </head>
 <body>
-    <header>
-        <span class="app-logo">📚</span>
-        <span id="book-title">每日跟读</span>
-        <select id="article-selector"><option value="">加载中...</option></select>
-    </header>
-
-    <div class="main-content">
-        <div class="swiper-container">
-            <div class="swiper" id="book-swiper">
-                <div class="swiper-wrapper">
-                    <div class="swiper-slide">
-                        <div class="placeholder-slide">
-                            <div class="icon">📖</div>
-                            <p>请从右上角选择绘本开始学习</p>
-                        </div>
-                    </div>
-                </div>
+    <!-- Library View -->
+    <div class="library-view" id="libraryView">
+        <header class="library-header">
+            <h1 class="library-title" id="libraryTitle">📚 Daily Reading</h1>
+            <div class="user-info">
+                <span class="streak-badge" id="headerStreak">🔥 0</span>
+                <span id="headerUserName">👤 Guest</span>
+            </div>
+        </header>
+        <div class="book-grid" id="bookGrid">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading books...
             </div>
         </div>
-        <div class="page-nav" id="page-nav"></div>
     </div>
 
-    <footer>
-        <div class="controls">
-            <div class="speed-row">
-                <span>🐢</span>
-                <input type="range" id="speed-slider" min="0.7" max="1.3" step="0.1" value="0.9">
-                <span>🐇</span>
-                <span id="speed-value">0.9x</span>
+    <!-- Reader View -->
+    <div class="reader-view" id="readerView">
+        <!-- Image Panel -->
+        <div class="image-panel">
+            <button class="back-btn" id="backBtn">←</button>
+            <div class="swiper" id="imageSwiper">
+                <div class="swiper-wrapper" id="imageWrapper">
+                    <!-- Slides added dynamically -->
+                </div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
             </div>
-            <div class="btn-row">
-                <button class="btn btn-listen" id="btn-listen">👂 听原音</button>
-                <button class="btn btn-record" id="btn-record">🎙️ 录我音</button>
-                <button class="btn btn-playback" id="btn-playback" disabled>▶️ 听回放</button>
-            </div>
-            <button class="btn btn-auto" id="btn-auto">🔄 自动播放全文</button>
-            <div class="status-bar" id="status-bar">选择绘本后点击句子开始学习</div>
         </div>
-    </footer>
 
+        <!-- Text Panel -->
+        <div class="text-panel">
+            <header class="reader-header">
+                <span class="reader-title" id="readerTitle">Book Title</span>
+                <div class="reader-user">
+                    <span class="reader-streak" id="readerStreak">🔥 0</span>
+                    <span id="readerUserName">👤 Guest</span>
+                </div>
+            </header>
+
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text" id="progressText">Page 1 of 1</div>
+            </div>
+
+            <div class="text-content" id="textContent">
+                <!-- Text content added dynamically -->
+            </div>
+
+            <footer class="control-footer">
+                <div class="control-row">
+                    <button class="control-btn btn-secondary" id="listenBtn">👂 Listen</button>
+                    <button class="control-btn btn-record" id="recordBtn">🎙️ Record</button>
+                    <button class="control-btn btn-secondary" id="playbackBtn" disabled>▶️ Playback</button>
+                    <button class="control-btn btn-autoplay" id="autoplayBtn">🔄 Auto Play</button>
+                </div>
+                <div class="speed-control">
+                    <span class="speed-label">Speed: <span id="speedValue">1.0</span>x</span>
+                    <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="1.5" step="0.1" value="1.0">
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Dictionary Popup -->
+    <div class="overlay" id="dictOverlay"></div>
+    <div class="dict-popup" id="dictPopup">
+        <div class="dict-header">
+            <div>
+                <span class="dict-word" id="dictWord">word</span>
+                <span class="dict-phonetic" id="dictPhonetic">/wɜːrd/</span>
+                <button class="dict-speak-btn" id="dictSpeakBtn">🔊</button>
+            </div>
+            <button class="dict-close" id="dictClose">✕</button>
+        </div>
+        <div class="dict-content" id="dictContent">
+            <div class="dict-loading">Loading definition...</div>
+        </div>
+    </div>
+
+    <!-- Name Input Modal -->
+    <div class="modal" id="nameModal">
+        <div class="modal-content">
+            <div class="modal-emoji">👋</div>
+            <h2 class="modal-title">Welcome!</h2>
+            <p class="modal-subtitle">What's your name? This will personalize your reading experience.</p>
+            <input type="text" class="modal-input" id="nameInput" placeholder="Enter your name..." maxlength="20">
+            <button class="modal-btn" id="nameSubmitBtn">Start Reading!</button>
+        </div>
+    </div>
+
+    <!-- Celebration Modal -->
+    <div class="celebration-modal" id="celebrationModal">
+        <div class="celebration-content">
+            <div class="celebration-stars">⭐🎉⭐</div>
+            <h2 class="celebration-title">Amazing Job!</h2>
+            <p class="celebration-message" id="celebrationMessage">
+                You finished the book! Keep up the great work!
+            </p>
+            <button class="celebration-btn" id="celebrationBtn">Back to Library</button>
+        </div>
+    </div>
+
+    <!-- Swiper JS -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
     <script>
-        const selector = document.getElementById('article-selector');
-        const bookTitle = document.getElementById('book-title');
-        const btnListen = document.getElementById('btn-listen');
-        const btnRecord = document.getElementById('btn-record');
-        const btnPlayback = document.getElementById('btn-playback');
-        const btnAuto = document.getElementById('btn-auto');
-        const slider = document.getElementById('speed-slider');
-        const speedVal = document.getElementById('speed-value');
-        const statusBar = document.getElementById('status-bar');
-        const pageNav = document.getElementById('page-nav');
-
-        const synth = window.speechSynthesis;
-        let swiper = null;
+        // ==================== Global State ====================
+        let currentBook = null;
         let pages = [];
-        let pageIdx = 0;
-        let currentFolderPath = '';
-        let selectedVoice = null;
-
-        let currentSentenceIdx = -1;
-        let isAutoPlaying = false;
-
+        let swiper = null;
         let mediaRecorder = null;
         let audioChunks = [];
-        let isRecording = false;
-        let recordedBlob = null;
-        let playbackAudio = null;
+        let recordedAudio = null;
+        let isAutoPlaying = false;
+        let selectedVoice = null;
+        let speechRate = 1.0;
+        let currentSentenceIndex = 0;
+        let loopCount = 0;
+        let loopTarget = 0;
+        let currentLoopSentence = null;
 
-        slider.oninput = function() {
-            speedVal.innerText = this.value + 'x';
-        };
+        // ==================== User & Streak Management ====================
+        function getUserName() {
+            return localStorage.getItem('userName') || '';
+        }
 
-        function loadVoices() {
-            const voices = synth.getVoices();
-            if (voices.length === 0) return;
+        function setUserName(name) {
+            localStorage.setItem('userName', name);
+            updateUserDisplay();
+        }
 
-            const priority = [
-                v => v.name.includes('Google US English'),
-                v => v.name === 'Samantha',
-                v => v.name.includes('Microsoft') && v.lang.startsWith('en'),
-                v => v.lang === 'en-US',
-                v => v.lang.startsWith('en')
-            ];
+        function getStreak() {
+            const streakData = JSON.parse(localStorage.getItem('streakData') || '{}');
+            const today = new Date().toDateString();
+            const yesterday = new Date(Date.now() - 86400000).toDateString();
 
-            for (const test of priority) {
-                const found = voices.find(test);
-                if (found) {
-                    selectedVoice = found;
-                    console.log('[Voice] Selected:', found.name);
-                    break;
-                }
+            if (streakData.lastDate === today) {
+                return streakData.count || 0;
+            } else if (streakData.lastDate === yesterday) {
+                return streakData.count || 0;
+            } else {
+                // Reset streak if more than 1 day gap
+                return 0;
             }
         }
 
-        if (synth.onvoiceschanged !== undefined) {
-            synth.onvoiceschanged = loadVoices;
+        function incrementStreak() {
+            const streakData = JSON.parse(localStorage.getItem('streakData') || '{}');
+            const today = new Date().toDateString();
+
+            if (streakData.lastDate === today) {
+                // Already recorded today
+                return streakData.count;
+            }
+
+            const yesterday = new Date(Date.now() - 86400000).toDateString();
+            let newCount;
+
+            if (streakData.lastDate === yesterday) {
+                newCount = (streakData.count || 0) + 1;
+            } else {
+                newCount = 1;
+            }
+
+            localStorage.setItem('streakData', JSON.stringify({
+                lastDate: today,
+                count: newCount
+            }));
+
+            updateStreakDisplay();
+            return newCount;
         }
-        loadVoices();
+
+        function updateUserDisplay() {
+            const name = getUserName() || 'Guest';
+            document.getElementById('headerUserName').textContent = `👤 ${name}`;
+            document.getElementById('readerUserName').textContent = `👤 ${name}`;
+            document.getElementById('libraryTitle').textContent = `📚 ${name}'s Reading`;
+        }
+
+        function updateStreakDisplay() {
+            const streak = getStreak();
+            document.getElementById('headerStreak').textContent = `🔥 ${streak}`;
+            document.getElementById('readerStreak').textContent = `🔥 ${streak}`;
+        }
+
+        function checkAndShowNameModal() {
+            if (!getUserName()) {
+                document.getElementById('nameModal').classList.add('active');
+            }
+        }
+
+        // ==================== Library Functions ====================
+        async function loadLibrary() {
+            try {
+                const response = await fetch('./lesson/library.json');
+                const library = await response.json();
+                renderBookGrid(library);
+            } catch (error) {
+                console.error('Failed to load library:', error);
+                document.getElementById('bookGrid').innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: white; padding: 40px;">
+                        <p style="font-size: 18px;">Failed to load library</p>
+                        <p style="font-size: 14px; opacity: 0.7; margin-top: 8px;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderBookGrid(library) {
+            const grid = document.getElementById('bookGrid');
+            let html = '';
+
+            for (const [level, books] of Object.entries(library)) {
+                books.forEach(book => {
+                    // Get cover image from first page
+                    const folderPath = book.path.replace(/\/story\.md$/, '');
+                    const coverImg = `./${folderPath}/images/p1.jpg`;
+                    
+                    html += `
+                        <div class="book-card" onclick="openBook('${book.path}', '${book.title.replace(/'/g, "\\'")}')">
+                            <img class="book-cover" src="${coverImg}" alt="${book.title}" 
+                                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23F5F3FF%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 font-size=%2240%22>📖</text></svg>'">
+                            <div class="book-info">
+                                <div class="book-title">${book.title}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            grid.innerHTML = html;
+        }
+
+        // ==================== Book Loading ====================
+        async function openBook(path, title) {
+            try {
+                currentBook = { path, title };
+                document.getElementById('readerTitle').textContent = title;
+
+                // Fetch story.md - path already contains full path
+                const response = await fetch(`./${path}`);
+                const markdown = await response.text();
+                
+                // Parse pages (split by ---)
+                pages = parseMarkdownPages(markdown, path);
+                
+                // Initialize reader
+                initializeReader();
+                
+                // Show reader view
+                document.getElementById('libraryView').style.display = 'none';
+                document.getElementById('readerView').classList.add('active');
+                
+                // Initialize swiper after view is visible
+                setTimeout(() => {
+                    initSwiper();
+                }, 100);
+
+            } catch (error) {
+                console.error('Failed to open book:', error);
+                alert('Failed to load book: ' + error.message);
+            }
+        }
+
+        function parseMarkdownPages(markdown, storyPath) {
+            const folderPath = storyPath.replace(/\/story\.md$/, '');
+            const rawPages = markdown.split(/\n---\n/);
+            
+            return rawPages.map((pageContent, index) => {
+                // Extract image
+                const imgMatch = pageContent.match(/!\[.*?\]\((.*?)\)/);
+                let imagePath = '';
+                if (imgMatch) {
+                    const imgRelPath = imgMatch[1];
+                    imagePath = `./${folderPath}/${imgRelPath}`;
+                }
+
+                // Extract text (remove image markdown)
+                let text = pageContent
+                    .replace(/!\[.*?\]\(.*?\)/g, '')
+                    .replace(/#.*\n/g, '')
+                    .trim();
+
+                return {
+                    image: imagePath,
+                    text: text,
+                    index: index
+                };
+            }).filter(page => page.text || page.image);
+        }
+
+        function initializeReader() {
+            updateProgress(0);
+            renderPageText(0);
+        }
 
         function initSwiper() {
-            if (swiper) swiper.destroy(true, true);
-            swiper = new Swiper('#book-swiper', {
-                threshold: 10,
+            // Build slides
+            const wrapper = document.getElementById('imageWrapper');
+            wrapper.innerHTML = pages.map((page, i) => `
+                <div class="swiper-slide">
+                    ${page.image ? 
+                        `<img class="page-image" src="${page.image}" alt="Page ${i + 1}" 
+                              onerror="this.style.display='none'">` : 
+                        `<div style="color: rgba(255,255,255,0.5); font-size: 24px;">📖</div>`
+                    }
+                </div>
+            `).join('');
+
+            // Initialize Swiper
+            if (swiper) {
+                swiper.destroy(true, true);
+            }
+
+            swiper = new Swiper('#imageSwiper', {
+                slidesPerView: 1,
+                spaceBetween: 0,
+                navigation: {
+                    nextEl: '.swiper-button-next',
+                    prevEl: '.swiper-button-prev',
+                },
                 on: {
                     slideChange: function() {
-                        pageIdx = this.activeIndex;
-                        updatePageNav();
-                        clearSelection();
-                        if (isAutoPlaying) stopAuto();
+                        const index = this.activeIndex;
+                        renderPageText(index);
+                        updateProgress(index);
+                        stopAutoPlay();
                     }
                 }
             });
         }
 
-        function updatePageNav() {
-            if (pages.length <= 1) {
-                pageNav.innerHTML = '';
-                return;
-            }
-            pageNav.innerHTML = pages.map((_, i) =>
-                `<div class="page-dot ${i === pageIdx ? 'active' : ''}" onclick="goToPage(${i})"></div>`
-            ).join('');
-        }
+        // ==================== Text Rendering ====================
+        function renderPageText(pageIndex) {
+            const page = pages[pageIndex];
+            if (!page) return;
 
-        window.goToPage = function(i) {
-            if (swiper) swiper.slideTo(i);
-        };
+            const textContent = document.getElementById('textContent');
+            const sentences = splitIntoSentences(page.text);
 
-        fetch('./lesson/library.json')
-            .then(r => r.json())
-            .then(data => {
-                selector.innerHTML = '<option value="">选择绘本...</option>';
-                if (data.O) {
-                    data.O.forEach(b => {
-                        const opt = document.createElement('option');
-                        opt.value = b.path;
-                        opt.textContent = '[O] ' + b.title;
-                        opt.dataset.title = b.title;
-                        selector.appendChild(opt);
-                    });
-                }
-            })
-            .catch(e => {
-                console.error('[Library]', e);
-                selector.innerHTML = '<option>加载失败</option>';
-            });
-
-        selector.addEventListener('change', async function() {
-            const fullPath = this.value;
-            if (!fullPath) return;
-
-            bookTitle.textContent = this.options[this.selectedIndex].dataset.title;
-            stopAuto();
-            clearSelection();
-            recordedBlob = null;
-            btnPlayback.disabled = true;
-
-            currentFolderPath = fullPath.replace(/\/story\.md$/, '');
-            const url = './' + fullPath;
-
-            try {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const md = await res.text();
-                parseMD(md);
-                statusBar.textContent = '点击句子开始跟读练习';
-            } catch (e) {
-                console.error('[Fetch]', e);
-                alert('加载失败: ' + url);
-            }
-        });
-
-        function parseMD(md) {
-            pages = md.split(/\n-{3,}\n/).map(p => {
-                const imgMatch = p.match(/!\[.*?\]\((.*?)\)/);
-                let text = p.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*`]/g, '').trim();
-                let img = '';
-                if (imgMatch) {
-                    const rel = imgMatch[1];
-                    img = rel.startsWith('http') ? rel : './' + currentFolderPath + '/' + rel;
-                }
-                const sentences = splitSentences(text);
-                return { img, sentences };
-            }).filter(p => p.img || p.sentences.length > 0);
-
-            renderSlides();
-        }
-
-        function splitSentences(text) {
-            if (!text) return [];
-            const parts = text.split(/([.!?。！？]+[\s"']*)/g);
-            const result = [];
-            let current = '';
-
-            for (let i = 0; i < parts.length; i++) {
-                current += parts[i];
-                if (/[.!?。！？]/.test(parts[i])) {
-                    const trimmed = current.trim();
-                    if (trimmed) result.push(trimmed);
-                    current = '';
-                }
-            }
-            if (current.trim()) result.push(current.trim());
-            return result;
-        }
-
-        function renderSlides() {
-            const html = pages.map((p, pi) => {
-                const imgStyle = p.img ? `background-image:url('${encodeURI(p.img)}')` : '';
-                const sentencesHtml = p.sentences.map((s, si) =>
-                    `<span class="sentence" data-page="${pi}" data-idx="${si}" onclick="selectSentence(${pi},${si})">${s}</span> `
-                ).join('');
-
-                return `<div class="swiper-slide">
-                    <div class="slide-image" style="${imgStyle}"></div>
-                    <div class="slide-text">${sentencesHtml || '<p style="color:#999;text-align:center;">（本页无文字）</p>'}</div>
-                </div>`;
+            textContent.innerHTML = sentences.map((sentence, i) => {
+                const words = sentence.split(/\s+/).map(word => {
+                    // Clean word for display but keep punctuation
+                    return `<span class="word" data-word="${word.replace(/[^a-zA-Z]/g, '').toLowerCase()}">${word}</span>`;
+                }).join(' ');
+                
+                return `<span class="sentence" data-index="${i}">${words}</span> `;
             }).join('');
 
-            document.querySelector('.swiper-wrapper').innerHTML = html || 
-                '<div class="swiper-slide"><div class="placeholder-slide"><div class="icon">📖</div><p>内容为空</p></div></div>';
+            // Add click handlers for words (dictionary)
+            textContent.querySelectorAll('.word').forEach(wordEl => {
+                wordEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const word = wordEl.dataset.word;
+                    if (word && word.length > 1) {
+                        showDictionary(word);
+                    }
+                });
+            });
 
-            initSwiper();
-            pageIdx = 0;
-            updatePageNav();
-        }
+            // Add click handlers for sentences (TTS)
+            textContent.querySelectorAll('.sentence').forEach(sentenceEl => {
+                sentenceEl.addEventListener('click', () => {
+                    const index = parseInt(sentenceEl.dataset.index);
+                    playSentence(index);
+                });
 
-        window.selectSentence = function(pi, si) {
-            if (pi !== pageIdx) {
-                swiper.slideTo(pi);
-            }
-
-            document.querySelectorAll('.sentence.active').forEach(el => el.classList.remove('active'));
-            const el = document.querySelector(`.sentence[data-page="${pi}"][data-idx="${si}"]`);
-            if (el) {
-                el.classList.add('active');
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-
-            currentSentenceIdx = si;
-            statusBar.textContent = `第 ${pi + 1} 页，第 ${si + 1} 句`;
-
-            recordedBlob = null;
-            btnPlayback.disabled = true;
-
-            speakSentence(pi, si);
-        };
-
-        function getCurrentSentenceText() {
-            if (pageIdx < 0 || pageIdx >= pages.length) return '';
-            if (currentSentenceIdx < 0 || currentSentenceIdx >= pages[pageIdx].sentences.length) return '';
-            return pages[pageIdx].sentences[currentSentenceIdx];
-        }
-
-        function speakSentence(pi, si, onEnd) {
-            synth.cancel();
-            const text = pages[pi]?.sentences[si];
-            if (!text) {
-                if (onEnd) onEnd();
-                return;
-            }
-
-            const el = document.querySelector(`.sentence[data-page="${pi}"][data-idx="${si}"]`);
-            if (el) el.classList.add('playing');
-
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'en-US';
-            u.rate = parseFloat(slider.value);
-            if (selectedVoice) u.voice = selectedVoice;
-
-            u.onend = () => {
-                if (el) el.classList.remove('playing');
-                if (onEnd) onEnd();
-            };
-            u.onerror = () => {
-                if (el) el.classList.remove('playing');
-                if (onEnd) onEnd();
-            };
-
-            synth.speak(u);
-        }
-
-        function clearSelection() {
-            currentSentenceIdx = -1;
-            document.querySelectorAll('.sentence.active, .sentence.playing').forEach(el => {
-                el.classList.remove('active', 'playing');
+                // Double-click for loop
+                sentenceEl.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    const index = parseInt(sentenceEl.dataset.index);
+                    startLoopSentence(index);
+                });
             });
         }
 
-        btnListen.onclick = function() {
-            const text = getCurrentSentenceText();
-            if (!text) {
-                alert('请先点击选择一个句子');
+        function splitIntoSentences(text) {
+            // Split by sentence-ending punctuation
+            const sentences = text.match(/[^.!?。！？]+[.!?。！？]+/g) || [text];
+            return sentences.map(s => s.trim()).filter(s => s.length > 0);
+        }
+
+        function updateProgress(pageIndex) {
+            const total = pages.length;
+            const current = pageIndex + 1;
+            const percent = (current / total) * 100;
+
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = `Page ${current} of ${total}`;
+        }
+
+        // ==================== TTS Functions ====================
+        function initVoice() {
+            const voices = speechSynthesis.getVoices();
+            // Prefer Samantha (natural US English), then other US English voices
+            selectedVoice = voices.find(v => v.name === 'Samantha') ||
+                           voices.find(v => v.name.includes('Google US English')) ||
+                           voices.find(v => v.lang.startsWith('en-US')) ||
+                           voices.find(v => v.lang.startsWith('en')) ||
+                           voices[0];
+        }
+
+        speechSynthesis.onvoiceschanged = initVoice;
+        initVoice();
+
+        function speak(text, onEnd = null, onBoundary = null) {
+            speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = selectedVoice;
+            utterance.rate = speechRate;
+            utterance.pitch = 1;
+
+            if (onEnd) utterance.onend = onEnd;
+            if (onBoundary) utterance.onboundary = onBoundary;
+
+            speechSynthesis.speak(utterance);
+            return utterance;
+        }
+
+        function playSentence(index) {
+            const sentences = document.querySelectorAll('.sentence');
+            const sentenceEl = sentences[index];
+            if (!sentenceEl) return;
+
+            // Clear previous highlights
+            sentences.forEach(s => s.classList.remove('active', 'playing'));
+            sentenceEl.classList.add('active', 'playing');
+
+            const text = sentenceEl.textContent;
+            speak(text, () => {
+                sentenceEl.classList.remove('playing');
+                
+                // Handle loop mode
+                if (currentLoopSentence === index && loopCount < loopTarget) {
+                    loopCount++;
+                    updateLoopIndicator(index);
+                    setTimeout(() => playSentence(index), 300);
+                } else if (currentLoopSentence === index) {
+                    // Loop finished
+                    clearLoopIndicator();
+                    currentLoopSentence = null;
+                    loopCount = 0;
+                    loopTarget = 0;
+                }
+            }, (event) => {
+                // Word boundary highlighting
+                if (event.name === 'word') {
+                    highlightWordAtChar(sentenceEl, event.charIndex);
+                }
+            });
+
+            currentSentenceIndex = index;
+        }
+
+        function highlightWordAtChar(sentenceEl, charIndex) {
+            const words = sentenceEl.querySelectorAll('.word');
+            let currentPos = 0;
+            
+            words.forEach(word => {
+                word.classList.remove('highlighted');
+                const wordLength = word.textContent.length + 1; // +1 for space
+                if (charIndex >= currentPos && charIndex < currentPos + wordLength) {
+                    word.classList.add('highlighted');
+                }
+                currentPos += wordLength;
+            });
+        }
+
+        // ==================== Loop Sentence ====================
+        function startLoopSentence(index) {
+            // Cancel any existing speech/loop
+            speechSynthesis.cancel();
+            clearLoopIndicator();
+
+            currentLoopSentence = index;
+            loopCount = 1;
+            loopTarget = 3;
+
+            updateLoopIndicator(index);
+            playSentence(index);
+        }
+
+        function updateLoopIndicator(index) {
+            clearLoopIndicator();
+            const sentenceEl = document.querySelectorAll('.sentence')[index];
+            if (sentenceEl) {
+                const indicator = document.createElement('span');
+                indicator.className = 'loop-indicator';
+                indicator.id = 'loopIndicator';
+                indicator.textContent = `🔁 ${loopCount}/${loopTarget}`;
+                sentenceEl.appendChild(indicator);
+            }
+        }
+
+        function clearLoopIndicator() {
+            const existing = document.getElementById('loopIndicator');
+            if (existing) existing.remove();
+        }
+
+        // ==================== Auto Play ====================
+        function startAutoPlay() {
+            if (isAutoPlaying) {
+                stopAutoPlay();
                 return;
             }
-            speakSentence(pageIdx, currentSentenceIdx);
-        };
 
-        btnRecord.onclick = async function() {
-            if (isRecording) {
-                stopRecording();
-            } else {
-                const text = getCurrentSentenceText();
-                if (!text) {
-                    alert('请先点击选择一个句子');
-                    return;
+            isAutoPlaying = true;
+            document.getElementById('autoplayBtn').classList.add('playing');
+            document.getElementById('autoplayBtn').innerHTML = '⏹️ Stop';
+
+            playAllSentences(0);
+        }
+
+        function stopAutoPlay() {
+            isAutoPlaying = false;
+            speechSynthesis.cancel();
+            document.getElementById('autoplayBtn').classList.remove('playing');
+            document.getElementById('autoplayBtn').innerHTML = '🔄 Auto Play';
+            
+            document.querySelectorAll('.sentence').forEach(s => {
+                s.classList.remove('active', 'playing');
+            });
+        }
+
+        function playAllSentences(index) {
+            if (!isAutoPlaying) return;
+
+            const sentences = document.querySelectorAll('.sentence');
+            
+            if (index >= sentences.length) {
+                // Move to next page or finish
+                if (swiper && swiper.activeIndex < pages.length - 1) {
+                    swiper.slideNext();
+                    setTimeout(() => playAllSentences(0), 500);
+                } else {
+                    // Book finished!
+                    stopAutoPlay();
+                    showCelebration();
                 }
-                await startRecording();
+                return;
             }
-        };
 
+            sentences.forEach(s => s.classList.remove('active', 'playing'));
+            const sentenceEl = sentences[index];
+            sentenceEl.classList.add('active', 'playing');
+
+            // Scroll sentence into view
+            sentenceEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            const text = sentenceEl.textContent;
+            speak(text, () => {
+                sentenceEl.classList.remove('playing');
+                if (isAutoPlaying) {
+                    setTimeout(() => playAllSentences(index + 1), 200);
+                }
+            }, (event) => {
+                if (event.name === 'word') {
+                    highlightWordAtChar(sentenceEl, event.charIndex);
+                }
+            });
+        }
+
+        // ==================== Recording ====================
         async function startRecording() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
 
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
+                mediaRecorder.ondataavailable = (e) => {
+                    audioChunks.push(e.data);
                 };
 
                 mediaRecorder.onstop = () => {
-                    stream.getTracks().forEach(t => t.stop());
-                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    btnPlayback.disabled = false;
-                    statusBar.textContent = '录音完成！点击"听回放"收听';
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    recordedAudio = URL.createObjectURL(audioBlob);
+                    document.getElementById('playbackBtn').disabled = false;
+                    stream.getTracks().forEach(track => track.stop());
                 };
 
                 mediaRecorder.start();
-                isRecording = true;
-                btnRecord.classList.add('recording');
-                btnRecord.innerHTML = '⏹️ 停止录音';
-                statusBar.textContent = '正在录音...';
-            } catch (e) {
-                alert('无法访问麦克风，请检查权限');
+                document.getElementById('recordBtn').classList.add('recording');
+                document.getElementById('recordBtn').innerHTML = '⏹️ Stop';
+
+            } catch (error) {
+                console.error('Recording failed:', error);
+                alert('Could not access microphone. Please allow microphone access.');
             }
         }
 
         function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
+                document.getElementById('recordBtn').classList.remove('recording');
+                document.getElementById('recordBtn').innerHTML = '🎙️ Record';
             }
-            isRecording = false;
-            btnRecord.classList.remove('recording');
-            btnRecord.innerHTML = '🎙️ 录我音';
         }
 
-        btnPlayback.onclick = function() {
-            if (!recordedBlob) return;
-            if (playbackAudio) {
-                playbackAudio.pause();
-                playbackAudio = null;
+        function playRecording() {
+            if (recordedAudio) {
+                const audio = new Audio(recordedAudio);
+                audio.play();
             }
-            playbackAudio = new Audio(URL.createObjectURL(recordedBlob));
-            playbackAudio.play();
-            statusBar.textContent = '正在播放录音...';
-            playbackAudio.onended = () => {
-                statusBar.textContent = '回放结束';
-            };
-        };
-
-        btnAuto.onclick = function() {
-            if (isAutoPlaying) {
-                stopAuto();
-            } else {
-                startAuto();
-            }
-        };
-
-        function startAuto() {
-            if (pages.length === 0) {
-                alert('请先选择绘本');
-                return;
-            }
-            isAutoPlaying = true;
-            btnAuto.classList.add('playing');
-            btnAuto.innerHTML = '⏹️ 停止播放';
-
-            if (currentSentenceIdx < 0) currentSentenceIdx = 0;
-            playNextAuto();
         }
 
-        function stopAuto() {
-            isAutoPlaying = false;
-            synth.cancel();
-            btnAuto.classList.remove('playing');
-            btnAuto.innerHTML = '🔄 自动播放全文';
-        }
+        // ==================== Dictionary ====================
+        async function showDictionary(word) {
+            const popup = document.getElementById('dictPopup');
+            const overlay = document.getElementById('dictOverlay');
+            const content = document.getElementById('dictContent');
+            
+            document.getElementById('dictWord').textContent = word;
+            document.getElementById('dictPhonetic').textContent = '';
+            content.innerHTML = '<div class="dict-loading">Loading definition...</div>';
+            
+            popup.classList.add('active');
+            overlay.classList.add('active');
 
-        function playNextAuto() {
-            if (!isAutoPlaying) return;
-
-            const page = pages[pageIdx];
-            if (!page) {
-                stopAuto();
-                return;
-            }
-
-            if (currentSentenceIdx >= page.sentences.length) {
-                if (pageIdx < pages.length - 1) {
-                    pageIdx++;
-                    swiper.slideTo(pageIdx);
-                    currentSentenceIdx = 0;
-                    setTimeout(playNextAuto, 600);
-                } else {
-                    stopAuto();
-                    statusBar.textContent = '全文播放完毕';
+            try {
+                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                
+                if (!response.ok) {
+                    throw new Error('Word not found');
                 }
+
+                const data = await response.json();
+                const entry = data[0];
+
+                // Update phonetic
+                const phonetic = entry.phonetics.find(p => p.text)?.text || '';
+                document.getElementById('dictPhonetic').textContent = phonetic;
+
+                // Build meanings
+                let html = '';
+                entry.meanings.forEach(meaning => {
+                    html += `<div class="dict-meaning">`;
+                    html += `<span class="dict-pos">${meaning.partOfSpeech}</span>`;
+                    
+                    meaning.definitions.slice(0, 2).forEach(def => {
+                        html += `<div class="dict-def">${def.definition}</div>`;
+                        if (def.example) {
+                            html += `<div class="dict-example">"${def.example}"</div>`;
+                        }
+                    });
+                    
+                    html += `</div>`;
+                });
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                content.innerHTML = `
+                    <div class="dict-meaning">
+                        <div class="dict-def" style="color: var(--text-secondary);">
+                            Definition not found. Try looking up "${word}" in a dictionary.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function closeDictionary() {
+            document.getElementById('dictPopup').classList.remove('active');
+            document.getElementById('dictOverlay').classList.remove('active');
+        }
+
+        function speakDictWord() {
+            const word = document.getElementById('dictWord').textContent;
+            speak(word);
+        }
+
+        // ==================== Celebration ====================
+        function showCelebration() {
+            // Increment streak
+            incrementStreak();
+            
+            const userName = getUserName() || 'Reader';
+            document.getElementById('celebrationMessage').textContent = 
+                `Great job, ${userName}! You finished "${currentBook?.title || 'the book'}"! Keep reading every day to grow your streak!`;
+
+            document.getElementById('celebrationModal').classList.add('active');
+
+            // Fire confetti
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#8B5CF6', '#A78BFA', '#F472B6', '#FBBF24']
+                });
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#8B5CF6', '#A78BFA', '#F472B6', '#FBBF24']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            })();
+        }
+
+        function closeCelebration() {
+            document.getElementById('celebrationModal').classList.remove('active');
+            goBack();
+        }
+
+        // ==================== Navigation ====================
+        function goBack() {
+            stopAutoPlay();
+            speechSynthesis.cancel();
+            
+            if (swiper) {
+                swiper.destroy(true, true);
+                swiper = null;
+            }
+
+            document.getElementById('readerView').classList.remove('active');
+            document.getElementById('libraryView').style.display = 'flex';
+            
+            // Reset recording
+            recordedAudio = null;
+            document.getElementById('playbackBtn').disabled = true;
+        }
+
+        // ==================== Event Listeners ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize user
+            updateUserDisplay();
+            updateStreakDisplay();
+            checkAndShowNameModal();
+
+            // Load library
+            loadLibrary();
+
+            // Back button
+            document.getElementById('backBtn').addEventListener('click', goBack);
+
+            // Listen button
+            document.getElementById('listenBtn').addEventListener('click', () => {
+                const pageIndex = swiper ? swiper.activeIndex : 0;
+                const page = pages[pageIndex];
+                if (page) {
+                    speak(page.text);
+                }
+            });
+
+            // Record button
+            document.getElementById('recordBtn').addEventListener('click', () => {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            });
+
+            // Playback button
+            document.getElementById('playbackBtn').addEventListener('click', playRecording);
+
+            // Auto play button
+            document.getElementById('autoplayBtn').addEventListener('click', startAutoPlay);
+
+            // Speed slider
+            document.getElementById('speedSlider').addEventListener('input', (e) => {
+                speechRate = parseFloat(e.target.value);
+                document.getElementById('speedValue').textContent = speechRate.toFixed(1);
+            });
+
+            // Dictionary close
+            document.getElementById('dictClose').addEventListener('click', closeDictionary);
+            document.getElementById('dictOverlay').addEventListener('click', closeDictionary);
+            document.getElementById('dictSpeakBtn').addEventListener('click', speakDictWord);
+
+            // Name modal
+            document.getElementById('nameSubmitBtn').addEventListener('click', () => {
+                const name = document.getElementById('nameInput').value.trim();
+                if (name) {
+                    setUserName(name);
+                    document.getElementById('nameModal').classList.remove('active');
+                }
+            });
+
+            document.getElementById('nameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('nameSubmitBtn').click();
+                }
+            });
+
+            // Celebration close
+            document.getElementById('celebrationBtn').addEventListener('click', closeCelebration);
+        });
+
+        // Prevent pull-to-refresh and bounce
+        document.body.addEventListener('touchmove', (e) => {
+            if (e.target.closest('.text-content') || e.target.closest('.book-grid') || e.target.closest('.dict-popup')) {
                 return;
             }
-
-            selectSentenceNoSpeak(pageIdx, currentSentenceIdx);
-            speakSentence(pageIdx, currentSentenceIdx, () => {
-                currentSentenceIdx++;
-                setTimeout(playNextAuto, 400);
-            });
-        }
-
-        function selectSentenceNoSpeak(pi, si) {
-            document.querySelectorAll('.sentence.active').forEach(el => el.classList.remove('active'));
-            const el = document.querySelector(`.sentence[data-page="${pi}"][data-idx="${si}"]`);
-            if (el) {
-                el.classList.add('active');
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            statusBar.textContent = `第 ${pi + 1} 页，第 ${si + 1} 句`;
-        }
-
-        initSwiper();
+            e.preventDefault();
+        }, { passive: false });
     </script>
 </body>
 </html>

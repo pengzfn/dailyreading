@@ -1,9 +1,8 @@
 {
   "O": [
     {
-      "id": "HANSEL AND GRETEL",
-      "title": "Hansel And Gretel",
-      "cover": "lesson/O/HANSEL AND GRETEL/images/p1.jpg",
+      "id": "hansel-gretel",
+      "title": "HANSEL AND GRETEL",
       "path": "lesson/O/HANSEL AND GRETEL/story.md"
     }
   ]
