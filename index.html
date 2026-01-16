@@ -61,7 +61,7 @@
         const slider = document.getElementById('speed-slider');
         const speedVal = document.getElementById('speed-value');
         const synth = window.speechSynthesis;
-        let swiper, pages=[], idx=0, isPlaying=false, currentPath='';
+        let swiper, pages=[], idx=0, isPlaying=false, currentFolderPath='';
 
         slider.oninput = function(){ speedVal.innerText = this.value + 'x'; };
 
@@ -92,36 +92,43 @@
             });
 
         selector.addEventListener('change', async function() {
-            const path = this.value;
-            if(!path) return;
-            currentPath = path;
+            const fullPath = this.value;
+            if(!fullPath) return;
+            
             bookTitle.textContent = this.options[this.selectedIndex].dataset.title;
             stop();
 
-            const basePath = path.substring(0, path.lastIndexOf('/'));
-            const url = './' + path;
-            console.log('Fetching:', url);
+            currentFolderPath = fullPath.replace(/\/story\.md$/, '');
+            
+            const url = './' + fullPath;
+            console.log('[DEBUG] Fetch URL:', url);
+            console.log('[DEBUG] Folder Path:', currentFolderPath);
 
             try {
                 const res = await fetch(url);
-                if(!res.ok) throw new Error('File not found');
+                if(!res.ok) throw new Error('HTTP ' + res.status);
                 const text = await res.text();
-                parse(text, basePath);
+                parse(text);
             } catch(e) {
+                console.error('[ERROR]', e);
                 alert('无法加载: ' + url);
             }
         });
 
-        function parse(md, basePath) {
+        function parse(md) {
             pages = md.split(/\n-{3,}\n/).map(p => {
                 const imgMatch = p.match(/!\[.*?\]\((.*?)\)/);
                 const text = p.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*`]/g, '').trim();
                 let img = '';
                 if(imgMatch) {
-                    img = imgMatch[1].startsWith('http') ? imgMatch[1] : './' + basePath + '/' + imgMatch[1];
+                    const imgRelPath = imgMatch[1];
+                    img = imgRelPath.startsWith('http') ? imgRelPath : './' + currentFolderPath + '/' + imgRelPath;
                 }
                 return { img, text };
             }).filter(p => p.img || p.text);
+
+            console.log('[DEBUG] Parsed pages:', pages.length);
+            if(pages.length > 0) console.log('[DEBUG] First image:', pages[0].img);
 
             const html = pages.map((p,i) => `
                 <div class="swiper-slide">
