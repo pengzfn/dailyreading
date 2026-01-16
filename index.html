@@ -14,7 +14,6 @@
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
         * {
@@ -41,9 +40,11 @@
         }
 
         header {
+            height: 60px;
             flex-shrink: 0;
-            text-align: center;
-            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -53,6 +54,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            width: 100%;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -66,7 +68,6 @@
             font-size: 18px;
             font-weight: 600;
             color: #FFFFFF;
-            text-align: left;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -97,6 +98,7 @@
             flex-direction: column;
             overflow: hidden;
             padding: 12px;
+            min-height: 0;
         }
 
         .swiper-container {
@@ -107,6 +109,7 @@
             border-radius: 24px;
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            min-height: 0;
         }
 
         .swiper {
@@ -128,12 +131,6 @@
             background-position: center;
             background-repeat: no-repeat;
             flex-shrink: 0;
-        }
-
-        .slide-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
         }
 
         .slide-text {
@@ -187,7 +184,7 @@
         .swiper-pagination {
             position: relative;
             bottom: auto;
-            padding: 12px 0;
+            padding: 8px 0;
         }
 
         .swiper-pagination-bullet {
@@ -201,6 +198,13 @@
             background: #FFFFFF;
             width: 24px;
             border-radius: 4px;
+        }
+
+        .page-indicator {
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 4px 0;
         }
 
         footer {
@@ -309,21 +313,11 @@
             font-size: 20px;
         }
 
-        .offline-notice {
-            background: rgba(255, 149, 0, 0.2);
-            color: #FFFFFF;
-            font-size: 13px;
-            padding: 10px 14px;
-            border-radius: 10px;
-            margin-bottom: 12px;
+        .error-msg {
+            color: #FF6B6B;
+            font-size: 14px;
             text-align: center;
-        }
-
-        .page-indicator {
-            text-align: center;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
-            margin-top: 8px;
+            padding: 20px;
         }
     </style>
 </head>
@@ -372,36 +366,28 @@
     </footer>
 
     <script>
-        // ============================================================
-        // 全局变量
-        // ============================================================
-        const articleSelector = document.getElementById('article-selector');
-        const bookTitle = document.getElementById('book-title');
-        const btnPlay = document.getElementById('btn-play');
-        const btnRecord = document.getElementById('btn-record');
-        const speedSlider = document.getElementById('speed-slider');
-        const speedValue = document.getElementById('speed-value');
-        const pageIndicator = document.getElementById('page-indicator');
+        var articleSelector = document.getElementById('article-selector');
+        var bookTitle = document.getElementById('book-title');
+        var btnPlay = document.getElementById('btn-play');
+        var btnRecord = document.getElementById('btn-record');
+        var speedSlider = document.getElementById('speed-slider');
+        var speedValue = document.getElementById('speed-value');
+        var pageIndicator = document.getElementById('page-indicator');
 
-        const BASE_URL = './lesson/';
-        const synth = window.speechSynthesis;
+        var synth = window.speechSynthesis;
+        var swiper = null;
+        var pages = [];
+        var currentPageIndex = 0;
+        var isPlaying = false;
+        var selectedVoice = null;
+        var currentSpeed = 1.0;
+        var currentBookBasePath = '';
+        var currentArticleTitle = '';
 
-        let swiper = null;
-        let pages = [];
-        let currentPageIndex = 0;
-        let isPlaying = false;
-        let selectedVoice = null;
-        let currentSpeed = 1.0;
-        let currentBookPath = '';
+        var mediaRecorder = null;
+        var audioChunks = [];
+        var isRecording = false;
 
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let isRecording = false;
-        let currentArticleTitle = '';
-
-        // ============================================================
-        // Swiper 初始化
-        // ============================================================
         function initSwiper() {
             if (swiper) {
                 swiper.destroy(true, true);
@@ -416,7 +402,6 @@
                 },
                 on: {
                     slideChange: function() {
-                        // 用户手动翻页时停止播放
                         if (isPlaying) {
                             stopPlayback();
                         }
@@ -427,35 +412,21 @@
             });
         }
 
-        // ============================================================
-        // 语速控制
-        // ============================================================
         speedSlider.addEventListener('input', function() {
             currentSpeed = parseFloat(this.value);
             speedValue.textContent = currentSpeed.toFixed(1) + 'x';
         });
 
-        // ============================================================
-        // 智能语音选择
-        // ============================================================
         function loadVoices() {
-            const voices = synth.getVoices();
+            var voices = synth.getVoices();
             if (voices.length === 0) return;
 
-            let voice = voices.find(function(v) { return v.name === 'Samantha'; });
-            if (!voice) {
-                voice = voices.find(function(v) { return v.name.includes('Google US English'); });
-            }
-            if (!voice) {
-                voice = voices.find(function(v) { return v.lang === 'en-US'; });
-            }
-            if (!voice) {
-                voice = voices.find(function(v) { return v.lang.startsWith('en'); });
-            }
+            var voice = voices.find(function(v) { return v.name === 'Samantha'; });
+            if (!voice) voice = voices.find(function(v) { return v.name.indexOf('Google US English') >= 0; });
+            if (!voice) voice = voices.find(function(v) { return v.lang === 'en-US'; });
+            if (!voice) voice = voices.find(function(v) { return v.lang.indexOf('en') === 0; });
 
-            if (voice) {
-                selectedVoice = voice;
-            }
+            if (voice) selectedVoice = voice;
         }
 
         if (synth.onvoiceschanged !== undefined) {
@@ -463,66 +434,56 @@
         }
         loadVoices();
 
-        // ============================================================
-        // 动态加载书架
-        // ============================================================
         async function loadLibrary() {
+            var libraryUrl = './lesson/library.json';
+            console.log('[loadLibrary] Fetching:', libraryUrl);
+            
             try {
-                const response = await fetch(BASE_URL + 'library.json');
-                if (!response.ok) throw new Error('Library not found');
+                var response = await fetch(libraryUrl);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 
-                const library = await response.json();
+                var library = await response.json();
+                console.log('[loadLibrary] Loaded:', library);
                 
-                // 清空并重建选项
                 articleSelector.innerHTML = '<option value="">选择绘本...</option>';
                 
-                // 解析 library.json 的 O 数组
                 if (library.O && Array.isArray(library.O)) {
                     library.O.forEach(function(book) {
-                        const option = document.createElement('option');
+                        var option = document.createElement('option');
                         option.value = book.path;
-                        option.textContent = '[Level O] ' + book.title;
+                        option.textContent = '[O] ' + book.title;
                         option.dataset.title = book.title;
                         articleSelector.appendChild(option);
                     });
                 }
             } catch (error) {
-                console.error('加载书架失败:', error);
-                // Fallback: 添加示例选项
-                articleSelector.innerHTML = '<option value="">离线模式</option>';
+                console.error('[loadLibrary] Error:', error, 'URL:', libraryUrl);
+                articleSelector.innerHTML = '<option value="">加载失败</option>';
             }
         }
 
-        // ============================================================
-        // 解析 Markdown 为页面数组
-        // 按 --- 分割，每页提取图片和文字
-        // ============================================================
         function parseMarkdownToPages(markdown, basePath) {
-            const rawPages = markdown.split(/\n---\n|\n---$|^---\n/);
-            const parsedPages = [];
+            var rawPages = markdown.split(/\n---\n|\n---$|^---\n/);
+            var parsedPages = [];
 
             rawPages.forEach(function(pageContent) {
-                const trimmed = pageContent.trim();
+                var trimmed = pageContent.trim();
                 if (!trimmed) return;
 
-                // 提取图片 ![...](images/xxx.jpg)
-                const imgMatch = trimmed.match(/!\[([^\]]*)\]\(([^)]+)\)/);
-                let imageSrc = '';
-                let textContent = trimmed;
+                var imgMatch = trimmed.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+                var imageSrc = '';
+                var textContent = trimmed;
 
                 if (imgMatch) {
-                    const imgPath = imgMatch[2];
-                    // 构建完整图片路径
-                    if (imgPath.startsWith('http')) {
+                    var imgPath = imgMatch[2];
+                    if (imgPath.indexOf('http') === 0) {
                         imageSrc = imgPath;
                     } else {
                         imageSrc = basePath + '/' + imgPath;
                     }
-                    // 移除图片标记，保留文字
                     textContent = trimmed.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim();
                 }
 
-                // 清理 Markdown 标记
                 textContent = textContent
                     .replace(/^#+\s*/gm, '')
                     .replace(/\*\*/g, '')
@@ -541,13 +502,10 @@
             return parsedPages;
         }
 
-        // ============================================================
-        // 将文本转换为带 span 包裹的单词 HTML
-        // ============================================================
         function textToWordSpans(text) {
-            const words = text.split(/(\s+)/);
-            let html = '';
-            let wordIndex = 0;
+            var words = text.split(/(\s+)/);
+            var html = '';
+            var wordIndex = 0;
             
             words.forEach(function(segment) {
                 if (/^\s+$/.test(segment)) {
@@ -561,22 +519,20 @@
             return html;
         }
 
-        // ============================================================
-        // 渲染 Swiper 幻灯片
-        // ============================================================
         function renderSlides() {
-            const wrapper = document.querySelector('.swiper-wrapper');
+            var wrapper = document.querySelector('.swiper-wrapper');
             
             if (pages.length === 0) {
-                wrapper.innerHTML = '<div class="swiper-slide"><div class="placeholder-slide"><div class="icon">📖</div><p>请选择一本绘本开始阅读</p></div></div>';
+                wrapper.innerHTML = '<div class="swiper-slide"><div class="placeholder-slide"><div class="icon">📖</div><p>请选择一本绘本</p></div></div>';
+                initSwiper();
                 return;
             }
 
-            let slidesHtml = '';
+            var slidesHtml = '';
             
             pages.forEach(function(page, index) {
-                const imageStyle = page.image ? 'background-image: url(' + page.image + ')' : '';
-                const textHtml = page.text ? textToWordSpans(page.text) : '<p style="color:#8E8E93;text-align:center;">（本页无文字）</p>';
+                var imageStyle = page.image ? 'background-image: url(' + page.image + ')' : '';
+                var textHtml = page.text ? textToWordSpans(page.text) : '<span style="color:#8E8E93;">（本页无文字）</span>';
                 
                 slidesHtml += '<div class="swiper-slide" data-page="' + index + '">' +
                     '<div class="slide-image" style="' + imageStyle + '"></div>' +
@@ -585,15 +541,10 @@
             });
 
             wrapper.innerHTML = slidesHtml;
-            
-            // 重新初始化 Swiper
             initSwiper();
             updatePageIndicator();
         }
 
-        // ============================================================
-        // 更新页码指示器
-        // ============================================================
         function updatePageIndicator() {
             if (pages.length > 0) {
                 pageIndicator.textContent = (currentPageIndex + 1) + ' / ' + pages.length;
@@ -602,12 +553,9 @@
             }
         }
 
-        // ============================================================
-        // 书籍选择事件
-        // ============================================================
         articleSelector.addEventListener('change', async function() {
-            const selectedPath = this.value;
-            const selectedOption = this.options[this.selectedIndex];
+            var selectedPath = this.value;
+            var selectedOption = this.options[this.selectedIndex];
             
             if (!selectedPath) {
                 bookTitle.textContent = '每日跟读';
@@ -618,41 +566,45 @@
 
             currentArticleTitle = selectedOption.dataset.title || 'Story';
             bookTitle.textContent = currentArticleTitle;
-            currentBookPath = BASE_URL + selectedPath;
+
+            var lastSlash = selectedPath.lastIndexOf('/');
+            currentBookBasePath = selectedPath.substring(0, lastSlash);
+
+            var storyUrl = './' + selectedPath + '/story.md';
+            console.log('[loadStory] Fetching:', storyUrl);
+            console.log('[loadStory] BasePath:', currentBookBasePath);
 
             try {
-                const response = await fetch(currentBookPath + '/story.md');
-                if (!response.ok) throw new Error('Story not found');
+                var response = await fetch(storyUrl);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
                 
-                const markdown = await response.text();
-                pages = parseMarkdownToPages(markdown, currentBookPath);
+                var markdown = await response.text();
+                console.log('[loadStory] Loaded markdown length:', markdown.length);
+                
+                pages = parseMarkdownToPages(markdown, './' + selectedPath);
+                console.log('[loadStory] Parsed pages:', pages.length);
+                
                 currentPageIndex = 0;
                 renderSlides();
                 
             } catch (error) {
-                console.error('加载故事失败:', error);
+                console.error('[loadStory] Error:', error, 'URL:', storyUrl);
                 pages = [{
                     image: '',
-                    text: 'Failed to load story. Please check if the file exists.'
+                    text: 'Failed to load: ' + storyUrl
                 }];
                 renderSlides();
             }
         });
 
-        // ============================================================
-        // Karaoke 高亮逻辑
-        // ============================================================
         function buildWordPositions(text) {
-            const positions = [];
-            const words = text.split(/(\s+)/);
-            let charPos = 0;
+            var positions = [];
+            var words = text.split(/(\s+)/);
+            var charPos = 0;
             
             words.forEach(function(segment) {
                 if (!/^\s+$/.test(segment) && segment.length > 0) {
-                    positions.push({
-                        start: charPos,
-                        end: charPos + segment.length - 1
-                    });
+                    positions.push({ start: charPos, end: charPos + segment.length - 1 });
                 }
                 charPos += segment.length;
             });
@@ -661,31 +613,27 @@
         }
 
         function findWordIndexByCharIndex(positions, charIndex) {
-            for (let i = 0; i < positions.length; i++) {
+            for (var i = 0; i < positions.length; i++) {
                 if (charIndex >= positions[i].start && charIndex <= positions[i].end) {
                     return i;
                 }
-                if (i < positions.length - 1 && 
-                    charIndex > positions[i].end && 
-                    charIndex < positions[i + 1].start) {
+                if (i < positions.length - 1 && charIndex > positions[i].end && charIndex < positions[i + 1].start) {
                     return i + 1;
                 }
             }
             return -1;
         }
 
-        let lastHighlightedIndex = -1;
-        let currentWordSpans = [];
+        var lastHighlightedIndex = -1;
+        var currentWordSpans = [];
 
         function highlightWord(index) {
             if (lastHighlightedIndex >= 0 && lastHighlightedIndex < currentWordSpans.length) {
                 currentWordSpans[lastHighlightedIndex].classList.remove('active-word');
             }
-            
             if (index >= 0 && index < currentWordSpans.length) {
                 currentWordSpans[index].classList.add('active-word');
             }
-            
             lastHighlightedIndex = index;
         }
 
@@ -696,57 +644,42 @@
             lastHighlightedIndex = -1;
         }
 
-        // ============================================================
-        // 播放当前页
-        // ============================================================
         function playCurrentPage() {
             if (currentPageIndex >= pages.length) {
                 stopPlayback();
                 return;
             }
 
-            const page = pages[currentPageIndex];
+            var page = pages[currentPageIndex];
             if (!page.text) {
-                // 本页无文字，直接跳下一页
-                setTimeout(function() {
-                    goToNextPage();
-                }, 1000);
+                setTimeout(function() { goToNextPage(); }, 1000);
                 return;
             }
 
-            // 获取当前页的单词 spans
-            const currentSlide = document.querySelector('.swiper-slide[data-page="' + currentPageIndex + '"]');
+            var currentSlide = document.querySelector('.swiper-slide[data-page="' + currentPageIndex + '"]');
             if (currentSlide) {
                 currentWordSpans = Array.from(currentSlide.querySelectorAll('.word'));
             }
 
-            const wordPositions = buildWordPositions(page.text);
-
-            const utterance = new SpeechSynthesisUtterance(page.text);
+            var wordPositions = buildWordPositions(page.text);
+            var utterance = new SpeechSynthesisUtterance(page.text);
             utterance.lang = 'en-US';
             utterance.rate = currentSpeed;
             utterance.pitch = 1;
             
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
+            if (selectedVoice) utterance.voice = selectedVoice;
 
             utterance.onboundary = function(event) {
                 if (event.name === 'word') {
-                    const wordIndex = findWordIndexByCharIndex(wordPositions, event.charIndex);
-                    if (wordIndex >= 0) {
-                        highlightWord(wordIndex);
-                    }
+                    var wordIndex = findWordIndexByCharIndex(wordPositions, event.charIndex);
+                    if (wordIndex >= 0) highlightWord(wordIndex);
                 }
             };
 
             utterance.onend = function() {
                 clearAllHighlights();
-                // 自动翻页
                 if (isPlaying) {
-                    setTimeout(function() {
-                        goToNextPage();
-                    }, 800);
+                    setTimeout(function() { goToNextPage(); }, 800);
                 }
             };
 
@@ -765,24 +698,18 @@
                 updatePageIndicator();
                 playCurrentPage();
             } else {
-                // 读完最后一页
                 stopPlayback();
             }
         }
 
-        // ============================================================
-        // 播放控制
-        // ============================================================
         function startPlayback() {
             if (pages.length === 0) {
                 alert('请先选择一本绘本');
                 return;
             }
-            
             isPlaying = true;
             btnPlay.innerHTML = '<span class="btn-icon">⏸️</span> 暂停';
             btnPlay.classList.add('speaking');
-            
             playCurrentPage();
         }
 
@@ -802,47 +729,45 @@
             }
         });
 
-        // ============================================================
-        // 录音功能
-        // ============================================================
         btnRecord.addEventListener('click', async function() {
             if (isRecording) {
                 stopRecording();
-                return;
-            }
-
-            try {
-                await startRecording();
-            } catch (error) {
-                alert('无法访问麦克风，请检查权限设置');
+            } else {
+                try {
+                    await startRecording();
+                } catch (error) {
+                    alert('无法访问麦克风');
+                }
             }
         });
 
         async function startRecording() {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
+            var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
 
             mediaRecorder.ondataavailable = function(event) {
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
-                }
+                if (event.data.size > 0) audioChunks.push(event.data);
             };
 
             mediaRecorder.onstop = function() {
                 stream.getTracks().forEach(function(track) { track.stop(); });
+                var audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
+                var timestamp = new Date().toISOString().replace(/[-:T]/g, '').substring(0, 15);
+                var fileName = (currentArticleTitle || 'recording') + '_' + timestamp + '.m4a';
                 
-                const audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
-                const timestamp = formatTimestamp(new Date());
-                const fileName = (currentArticleTitle || 'recording') + '_' + timestamp + '.m4a';
-                
-                downloadAudio(audioBlob, fileName);
+                var url = URL.createObjectURL(audioBlob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             };
 
             mediaRecorder.start();
             isRecording = true;
-            
             btnRecord.innerHTML = '<span class="btn-icon">⏹️</span> 停止';
             btnRecord.classList.add('recording');
         }
@@ -851,39 +776,11 @@
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
             }
-            
             isRecording = false;
             btnRecord.innerHTML = '<span class="btn-icon">🎙️</span> 录音';
             btnRecord.classList.remove('recording');
         }
 
-        function downloadAudio(blob, fileName) {
-            const url = URL.createObjectURL(blob);
-            const downloadLink = document.createElement('a');
-            downloadLink.href = url;
-            downloadLink.download = fileName;
-            
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(url);
-        }
-
-        function formatTimestamp(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            
-            return year + month + day + '_' + hours + minutes + seconds;
-        }
-
-        // ============================================================
-        // 初始化
-        // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             initSwiper();
             loadLibrary();
