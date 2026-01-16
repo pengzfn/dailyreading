@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="每日跟读">
     <title>每日跟读</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -10,31 +13,166 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; overflow: hidden; }
         body {
-            font-family: -apple-system, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex; flex-direction: column;
-            padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        header { height: 60px; padding: 0 16px; background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); display: flex; align-items: center; gap: 12px; }
-        .app-logo { font-size: 28px; }
-        #book-title { flex: 1; color: #fff; font-weight: 600; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        #article-selector { padding: 8px; border-radius: 8px; border: none; background: rgba(255,255,255,0.9); max-width: 200px; }
-        .main-content { flex: 1; padding: 12px; display: flex; flex-direction: column; overflow: hidden; }
-        .swiper-container { flex: 1; width: 100%; max-width: 800px; margin: 0 auto; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; }
+
+        header {
+            height: 56px; padding: 0 16px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex; align-items: center; gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .app-logo { font-size: 26px; }
+        #book-title {
+            flex: 1; color: #fff; font-weight: 600; font-size: 17px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #article-selector {
+            padding: 8px 12px; border-radius: 8px; border: none;
+            background: rgba(255,255,255,0.95); font-size: 14px;
+            max-width: 180px; cursor: pointer;
+        }
+
+        .main-content {
+            flex: 1; padding: 10px;
+            display: flex; flex-direction: column;
+            overflow: hidden; min-height: 0;
+        }
+
+        .swiper-container {
+            flex: 1; width: 100%; max-width: 700px;
+            margin: 0 auto; border-radius: 20px;
+            overflow: hidden; background: #fff;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+            display: flex; flex-direction: column;
+        }
         .swiper { width: 100%; height: 100%; }
         .swiper-slide { height: 100%; display: flex !important; flex-direction: column; }
-        .slide-image { height: 55%; background-color: #f5f5f7; background-size: contain; background-position: center; background-repeat: no-repeat; }
-        .slide-text { height: 45%; padding: 20px; overflow-y: auto; font-size: 22px; line-height: 1.6; color: #333; }
-        .word { padding: 2px; border-radius: 4px; transition: 0.2s; }
-        .word.active-word { background: #ffd700; transform: scale(1.1); display: inline-block; font-weight: bold; }
-        footer { padding: 12px 16px; background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); }
-        .controls { max-width: 800px; margin: 0 auto; }
-        .btn { width: 100%; height: 50px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; color: #fff; margin-top: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        #btn-play { background: #34C759; } #btn-play.speaking { background: #FF9500; }
-        .speed-row { display: flex; align-items: center; color: #fff; gap: 10px; margin-bottom: 5px; }
-        #speed-slider { flex: 1; }
-        .placeholder-slide { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #888; font-size: 18px; }
-        .icon { font-size: 64px; margin-bottom: 20px; }
+        .slide-image {
+            height: 50%; min-height: 200px;
+            background-color: #f0f0f5;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .slide-text {
+            height: 50%; padding: 16px 20px;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+        }
+
+        .sentence {
+            display: inline;
+            font-size: 20px; line-height: 1.8;
+            color: #333; padding: 4px 6px;
+            border-radius: 6px; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .sentence:hover { background: rgba(102,126,234,0.1); }
+        .sentence.active {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            box-shadow: 0 2px 8px rgba(255,193,7,0.3);
+        }
+        .sentence.playing {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+
+        .page-nav {
+            display: flex; justify-content: center;
+            gap: 8px; padding: 8px 0;
+        }
+        .page-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+            transition: 0.2s;
+        }
+        .page-dot.active {
+            width: 24px; border-radius: 4px;
+            background: #fff;
+        }
+
+        footer {
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .controls { max-width: 700px; margin: 0 auto; }
+
+        .speed-row {
+            display: flex; align-items: center;
+            gap: 8px; margin-bottom: 10px;
+            color: rgba(255,255,255,0.9); font-size: 13px;
+        }
+        #speed-slider {
+            flex: 1; height: 4px;
+            -webkit-appearance: none; appearance: none;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px; outline: none;
+        }
+        #speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 20px; height: 20px;
+            background: #fff; border-radius: 50%;
+            cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        #speed-value { min-width: 36px; text-align: center; font-weight: 600; }
+
+        .btn-row {
+            display: flex; gap: 10px;
+        }
+        .btn {
+            flex: 1; height: 52px;
+            border: none; border-radius: 14px;
+            font-size: 15px; font-weight: 600;
+            color: #fff; cursor: pointer;
+            display: flex; align-items: center;
+            justify-content: center; gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-listen { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); }
+        .btn-record { background: linear-gradient(135deg, #FF3B30 0%, #FF6B6B 100%); }
+        .btn-record.recording {
+            background: linear-gradient(135deg, #FF3B30 0%, #FF2D55 100%);
+            animation: pulse 1s infinite;
+        }
+        .btn-playback { background: linear-gradient(135deg, #34C759 0%, #30D158 100%); }
+        .btn-playback:disabled { background: #8E8E93; opacity: 0.6; }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0.5); }
+            50% { box-shadow: 0 0 0 12px rgba(255,59,48,0); }
+        }
+
+        .btn-auto {
+            width: 100%; margin-top: 10px;
+            background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+        }
+        .btn-auto.playing { background: linear-gradient(135deg, #8E8E93 0%, #636366 100%); }
+
+        .placeholder-slide {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100%; color: #888; font-size: 16px;
+            text-align: center; padding: 30px;
+        }
+        .placeholder-slide .icon { font-size: 56px; margin-bottom: 16px; }
+
+        .status-bar {
+            text-align: center; font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -43,148 +181,430 @@
         <span id="book-title">每日跟读</span>
         <select id="article-selector"><option value="">加载中...</option></select>
     </header>
+
     <div class="main-content">
-        <div class="swiper-container"><div class="swiper" id="book-swiper"><div class="swiper-wrapper">
-            <div class="swiper-slide"><div class="placeholder-slide"><div class="icon">📖</div><p>请从右上角选择绘本</p></div></div>
-        </div></div></div>
+        <div class="swiper-container">
+            <div class="swiper" id="book-swiper">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide">
+                        <div class="placeholder-slide">
+                            <div class="icon">📖</div>
+                            <p>请从右上角选择绘本开始学习</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="page-nav" id="page-nav"></div>
     </div>
+
     <footer>
         <div class="controls">
-            <div class="speed-row"><span>🐢</span><input type="range" id="speed-slider" min="0.8" max="1.5" step="0.1" value="1.0"><span>🐇</span><span id="speed-value">1.0x</span></div>
-            <button class="btn" id="btn-play">▶️ 播放</button>
+            <div class="speed-row">
+                <span>🐢</span>
+                <input type="range" id="speed-slider" min="0.7" max="1.3" step="0.1" value="0.9">
+                <span>🐇</span>
+                <span id="speed-value">0.9x</span>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-listen" id="btn-listen">👂 听原音</button>
+                <button class="btn btn-record" id="btn-record">🎙️ 录我音</button>
+                <button class="btn btn-playback" id="btn-playback" disabled>▶️ 听回放</button>
+            </div>
+            <button class="btn btn-auto" id="btn-auto">🔄 自动播放全文</button>
+            <div class="status-bar" id="status-bar">选择绘本后点击句子开始学习</div>
         </div>
     </footer>
+
     <script>
         const selector = document.getElementById('article-selector');
         const bookTitle = document.getElementById('book-title');
-        const btnPlay = document.getElementById('btn-play');
+        const btnListen = document.getElementById('btn-listen');
+        const btnRecord = document.getElementById('btn-record');
+        const btnPlayback = document.getElementById('btn-playback');
+        const btnAuto = document.getElementById('btn-auto');
         const slider = document.getElementById('speed-slider');
         const speedVal = document.getElementById('speed-value');
-        const synth = window.speechSynthesis;
-        let swiper, pages=[], idx=0, isPlaying=false, currentFolderPath='';
+        const statusBar = document.getElementById('status-bar');
+        const pageNav = document.getElementById('page-nav');
 
-        slider.oninput = function(){ speedVal.innerText = this.value + 'x'; };
+        const synth = window.speechSynthesis;
+        let swiper = null;
+        let pages = [];
+        let pageIdx = 0;
+        let currentFolderPath = '';
+        let selectedVoice = null;
+
+        let currentSentenceIdx = -1;
+        let isAutoPlaying = false;
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordedBlob = null;
+        let playbackAudio = null;
+
+        slider.oninput = function() {
+            speedVal.innerText = this.value + 'x';
+        };
+
+        function loadVoices() {
+            const voices = synth.getVoices();
+            if (voices.length === 0) return;
+
+            const priority = [
+                v => v.name.includes('Google US English'),
+                v => v.name === 'Samantha',
+                v => v.name.includes('Microsoft') && v.lang.startsWith('en'),
+                v => v.lang === 'en-US',
+                v => v.lang.startsWith('en')
+            ];
+
+            for (const test of priority) {
+                const found = voices.find(test);
+                if (found) {
+                    selectedVoice = found;
+                    console.log('[Voice] Selected:', found.name);
+                    break;
+                }
+            }
+        }
+
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
 
         function initSwiper() {
-            if(swiper) swiper.destroy(true, true);
+            if (swiper) swiper.destroy(true, true);
             swiper = new Swiper('#book-swiper', {
-                threshold: 5,
-                on: { slideChange: () => { idx=swiper.activeIndex; if(isPlaying) stop(); } }
+                threshold: 10,
+                on: {
+                    slideChange: function() {
+                        pageIdx = this.activeIndex;
+                        updatePageNav();
+                        clearSelection();
+                        if (isAutoPlaying) stopAuto();
+                    }
+                }
             });
         }
-        initSwiper();
+
+        function updatePageNav() {
+            if (pages.length <= 1) {
+                pageNav.innerHTML = '';
+                return;
+            }
+            pageNav.innerHTML = pages.map((_, i) =>
+                `<div class="page-dot ${i === pageIdx ? 'active' : ''}" onclick="goToPage(${i})"></div>`
+            ).join('');
+        }
+
+        window.goToPage = function(i) {
+            if (swiper) swiper.slideTo(i);
+        };
 
         fetch('./lesson/library.json')
             .then(r => r.json())
             .then(data => {
                 selector.innerHTML = '<option value="">选择绘本...</option>';
-                if(data.O) data.O.forEach(b => {
-                    let opt = document.createElement('option');
-                    opt.value = b.path;
-                    opt.textContent = '[O] ' + b.title;
-                    opt.dataset.title = b.title;
-                    selector.appendChild(opt);
-                });
+                if (data.O) {
+                    data.O.forEach(b => {
+                        const opt = document.createElement('option');
+                        opt.value = b.path;
+                        opt.textContent = '[O] ' + b.title;
+                        opt.dataset.title = b.title;
+                        selector.appendChild(opt);
+                    });
+                }
             })
             .catch(e => {
-                console.error(e);
-                selector.innerHTML = '<option>书单加载失败</option>';
+                console.error('[Library]', e);
+                selector.innerHTML = '<option>加载失败</option>';
             });
 
         selector.addEventListener('change', async function() {
             const fullPath = this.value;
-            if(!fullPath) return;
-            
+            if (!fullPath) return;
+
             bookTitle.textContent = this.options[this.selectedIndex].dataset.title;
-            stop();
+            stopAuto();
+            clearSelection();
+            recordedBlob = null;
+            btnPlayback.disabled = true;
 
             currentFolderPath = fullPath.replace(/\/story\.md$/, '');
-            
             const url = './' + fullPath;
-            console.log('[DEBUG] Fetch URL:', url);
-            console.log('[DEBUG] Folder Path:', currentFolderPath);
 
             try {
                 const res = await fetch(url);
-                if(!res.ok) throw new Error('HTTP ' + res.status);
-                const text = await res.text();
-                parse(text);
-            } catch(e) {
-                console.error('[ERROR]', e);
-                alert('无法加载: ' + url);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const md = await res.text();
+                parseMD(md);
+                statusBar.textContent = '点击句子开始跟读练习';
+            } catch (e) {
+                console.error('[Fetch]', e);
+                alert('加载失败: ' + url);
             }
         });
 
-        function parse(md) {
+        function parseMD(md) {
             pages = md.split(/\n-{3,}\n/).map(p => {
                 const imgMatch = p.match(/!\[.*?\]\((.*?)\)/);
-                const text = p.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*`]/g, '').trim();
+                let text = p.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*`]/g, '').trim();
                 let img = '';
-                if(imgMatch) {
-                    const imgRelPath = imgMatch[1];
-                    img = imgRelPath.startsWith('http') ? imgRelPath : './' + currentFolderPath + '/' + imgRelPath;
+                if (imgMatch) {
+                    const rel = imgMatch[1];
+                    img = rel.startsWith('http') ? rel : './' + currentFolderPath + '/' + rel;
                 }
-                return { img, text };
-            }).filter(p => p.img || p.text);
+                const sentences = splitSentences(text);
+                return { img, sentences };
+            }).filter(p => p.img || p.sentences.length > 0);
 
-            console.log('[DEBUG] Parsed pages:', pages.length);
-            if(pages.length > 0) console.log('[DEBUG] First image:', pages[0].img);
+            renderSlides();
+        }
 
-            const html = pages.map((p,i) => `
-                <div class="swiper-slide">
-                    <div class="slide-image" style="background-image:url('${encodeURI(p.img)}')"></div>
-                    <div class="slide-text">${textToSpans(p.text)}</div>
-                </div>`).join('');
-            
-            document.querySelector('.swiper-wrapper').innerHTML = html;
+        function splitSentences(text) {
+            if (!text) return [];
+            const parts = text.split(/([.!?。！？]+[\s"']*)/g);
+            const result = [];
+            let current = '';
+
+            for (let i = 0; i < parts.length; i++) {
+                current += parts[i];
+                if (/[.!?。！？]/.test(parts[i])) {
+                    const trimmed = current.trim();
+                    if (trimmed) result.push(trimmed);
+                    current = '';
+                }
+            }
+            if (current.trim()) result.push(current.trim());
+            return result;
+        }
+
+        function renderSlides() {
+            const html = pages.map((p, pi) => {
+                const imgStyle = p.img ? `background-image:url('${encodeURI(p.img)}')` : '';
+                const sentencesHtml = p.sentences.map((s, si) =>
+                    `<span class="sentence" data-page="${pi}" data-idx="${si}" onclick="selectSentence(${pi},${si})">${s}</span> `
+                ).join('');
+
+                return `<div class="swiper-slide">
+                    <div class="slide-image" style="${imgStyle}"></div>
+                    <div class="slide-text">${sentencesHtml || '<p style="color:#999;text-align:center;">（本页无文字）</p>'}</div>
+                </div>`;
+            }).join('');
+
+            document.querySelector('.swiper-wrapper').innerHTML = html || 
+                '<div class="swiper-slide"><div class="placeholder-slide"><div class="icon">📖</div><p>内容为空</p></div></div>';
+
             initSwiper();
-            idx=0; swiper.slideTo(0);
+            pageIdx = 0;
+            updatePageNav();
         }
 
-        function textToSpans(txt) {
-            return txt.split(/\s+/).map((w,i) => `<span class="word" id="w-${i}">${w}</span>`).join(' ');
+        window.selectSentence = function(pi, si) {
+            if (pi !== pageIdx) {
+                swiper.slideTo(pi);
+            }
+
+            document.querySelectorAll('.sentence.active').forEach(el => el.classList.remove('active'));
+            const el = document.querySelector(`.sentence[data-page="${pi}"][data-idx="${si}"]`);
+            if (el) {
+                el.classList.add('active');
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            currentSentenceIdx = si;
+            statusBar.textContent = `第 ${pi + 1} 页，第 ${si + 1} 句`;
+
+            recordedBlob = null;
+            btnPlayback.disabled = true;
+
+            speakSentence(pi, si);
+        };
+
+        function getCurrentSentenceText() {
+            if (pageIdx < 0 || pageIdx >= pages.length) return '';
+            if (currentSentenceIdx < 0 || currentSentenceIdx >= pages[pageIdx].sentences.length) return '';
+            return pages[pageIdx].sentences[currentSentenceIdx];
         }
 
-        function play() {
-            if(idx >= pages.length) return stop();
-            const text = pages[idx].text;
-            if(!text || text.length < 2) { setTimeout(next, 500); return; }
+        function speakSentence(pi, si, onEnd) {
+            synth.cancel();
+            const text = pages[pi]?.sentences[si];
+            if (!text) {
+                if (onEnd) onEnd();
+                return;
+            }
+
+            const el = document.querySelector(`.sentence[data-page="${pi}"][data-idx="${si}"]`);
+            if (el) el.classList.add('playing');
 
             const u = new SpeechSynthesisUtterance(text);
-            u.rate = slider.value;
             u.lang = 'en-US';
-            
-            let charCount = 0;
-            const words = text.split(/\s+/);
-            const wordMap = words.map(w => { const s=charCount; charCount+=w.length+1; return {s, e:s+w.length}; });
+            u.rate = parseFloat(slider.value);
+            if (selectedVoice) u.voice = selectedVoice;
 
-            u.onboundary = (e) => {
-                if(e.name === 'word') {
-                    const i = wordMap.findIndex(w => e.charIndex >= w.s && e.charIndex < w.e);
-                    if(i!==-1) {
-                        document.querySelectorAll('.active-word').forEach(el=>el.classList.remove('active-word'));
-                        const el = document.querySelector(`.swiper-slide-active #w-${i}`);
-                        if(el) el.classList.add('active-word');
-                    }
-                }
+            u.onend = () => {
+                if (el) el.classList.remove('playing');
+                if (onEnd) onEnd();
             };
-            u.onend = () => { if(isPlaying) setTimeout(next, 500); };
-            synth.cancel(); synth.speak(u);
+            u.onerror = () => {
+                if (el) el.classList.remove('playing');
+                if (onEnd) onEnd();
+            };
+
+            synth.speak(u);
         }
 
-        function next() {
-            if(idx < pages.length-1) { swiper.slideNext(); play(); } else { stop(); }
+        function clearSelection() {
+            currentSentenceIdx = -1;
+            document.querySelectorAll('.sentence.active, .sentence.playing').forEach(el => {
+                el.classList.remove('active', 'playing');
+            });
         }
 
-        function stop() {
-            isPlaying = false; synth.cancel();
-            btnPlay.innerHTML = '▶️ 播放'; btnPlay.classList.remove('speaking');
-            document.querySelectorAll('.active-word').forEach(el=>el.classList.remove('active-word'));
-        }
-
-        btnPlay.onclick = () => {
-            if(isPlaying) stop(); else { isPlaying=true; btnPlay.innerHTML='⏸️ 暂停'; btnPlay.classList.add('speaking'); play(); }
+        btnListen.onclick = function() {
+            const text = getCurrentSentenceText();
+            if (!text) {
+                alert('请先点击选择一个句子');
+                return;
+            }
+            speakSentence(pageIdx, currentSentenceIdx);
         };
+
+        btnRecord.onclick = async function() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                const text = getCurrentSentenceText();
+                if (!text) {
+                    alert('请先点击选择一个句子');
+                    return;
+                }
+                await startRecording();
+            }
+        };
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    btnPlayback.disabled = false;
+                    statusBar.textContent = '录音完成！点击"听回放"收听';
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                btnRecord.classList.add('recording');
+                btnRecord.innerHTML = '⏹️ 停止录音';
+                statusBar.textContent = '正在录音...';
+            } catch (e) {
+                alert('无法访问麦克风，请检查权限');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            btnRecord.classList.remove('recording');
+            btnRecord.innerHTML = '🎙️ 录我音';
+        }
+
+        btnPlayback.onclick = function() {
+            if (!recordedBlob) return;
+            if (playbackAudio) {
+                playbackAudio.pause();
+                playbackAudio = null;
+            }
+            playbackAudio = new Audio(URL.createObjectURL(recordedBlob));
+            playbackAudio.play();
+            statusBar.textContent = '正在播放录音...';
+            playbackAudio.onended = () => {
+                statusBar.textContent = '回放结束';
+            };
+        };
+
+        btnAuto.onclick = function() {
+            if (isAutoPlaying) {
+                stopAuto();
+            } else {
+                startAuto();
+            }
+        };
+
+        function startAuto() {
+            if (pages.length === 0) {
+                alert('请先选择绘本');
+                return;
+            }
+            isAutoPlaying = true;
+            btnAuto.classList.add('playing');
+            btnAuto.innerHTML = '⏹️ 停止播放';
+
+            if (currentSentenceIdx < 0) currentSentenceIdx = 0;
+            playNextAuto();
+        }
+
+        function stopAuto() {
+            isAutoPlaying = false;
+            synth.cancel();
+            btnAuto.classList.remove('playing');
+            btnAuto.innerHTML = '🔄 自动播放全文';
+        }
+
+        function playNextAuto() {
+            if (!isAutoPlaying) return;
+
+            const page = pages[pageIdx];
+            if (!page) {
+                stopAuto();
+                return;
+            }
+
+            if (currentSentenceIdx >= page.sentences.length) {
+                if (pageIdx < pages.length - 1) {
+                    pageIdx++;
+                    swiper.slideTo(pageIdx);
+                    currentSentenceIdx = 0;
+                    setTimeout(playNextAuto, 600);
+                } else {
+                    stopAuto();
+                    statusBar.textContent = '全文播放完毕';
+                }
+                return;
+            }
+
+            selectSentenceNoSpeak(pageIdx, currentSentenceIdx);
+            speakSentence(pageIdx, currentSentenceIdx, () => {
+                currentSentenceIdx++;
+                setTimeout(playNextAuto, 400);
+            });
+        }
+
+        function selectSentenceNoSpeak(pi, si) {
+            document.querySelectorAll('.sentence.active').forEach(el => el.classList.remove('active'));
+            const el = document.querySelector(`.sentence[data-page="${pi}"][data-idx="${si}"]`);
+            if (el) {
+                el.classList.add('active');
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            statusBar.textContent = `第 ${pi + 1} 页，第 ${si + 1} 句`;
+        }
+
+        initSwiper();
     </script>
 </body>
 </html>
