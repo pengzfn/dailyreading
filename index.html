@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="每日跟读">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#667eea">
+    
+    <title>每日跟读</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
+
+        header {
+            flex-shrink: 0;
+            text-align: center;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .app-logo {
+            font-size: 28px;
+        }
+
+        #book-title {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 600;
+            color: #FFFFFF;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #article-selector {
+            padding: 10px 32px 10px 14px;
+            font-size: 15px;
+            font-weight: 500;
+            font-family: inherit;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #1C1C1E;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23667eea' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            cursor: pointer;
+            max-width: 200px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 12px;
+        }
+
+        .swiper-container {
+            flex: 1;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .swiper {
+            width: 100%;
+            height: 100%;
+            background: #F5F5F7;
+        }
+
+        .swiper-slide {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .slide-image {
+            height: 55%;
+            background-color: #E8E8ED;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            flex-shrink: 0;
+        }
+
+        .slide-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .slide-text {
+            height: 45%;
+            background: #FFFFFF;
+            padding: 20px 24px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .slide-text p {
+            font-size: 22px;
+            line-height: 1.8;
+            color: #2C2C2E;
+            margin-bottom: 12px;
+        }
+
+        .word {
+            display: inline-block;
+            padding: 2px 4px;
+            margin: 1px;
+            border-radius: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .word.active-word {
+            background: linear-gradient(135deg, #FFEB3B 0%, #FFC107 100%);
+            color: #1C1C1E;
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+            font-weight: 600;
+        }
+
+        .placeholder-slide {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #8E8E93;
+            font-size: 18px;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .placeholder-slide .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .swiper-pagination {
+            position: relative;
+            bottom: auto;
+            padding: 12px 0;
+        }
+
+        .swiper-pagination-bullet {
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 1;
+        }
+
+        .swiper-pagination-bullet-active {
+            background: #FFFFFF;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        footer {
+            flex-shrink: 0;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .controls {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .speed-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .speed-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+        }
+
+        #speed-slider {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        #speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #speed-value {
+            min-width: 42px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            height: 52px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            border: none;
+            border-radius: 14px;
+            color: #FFFFFF;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        #btn-play {
+            background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
+            box-shadow: 0 4px 15px rgba(52, 199, 89, 0.4);
+        }
+
+        #btn-play.speaking {
+            background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+            box-shadow: 0 4px 15px rgba(255, 149, 0, 0.4);
+        }
+
+        #btn-record {
+            background: linear-gradient(135deg, #FF3B30 0%, #FF6B6B 100%);
+            box-shadow: 0 4px 15px rgba(255, 59, 48, 0.4);
+        }
+
+        #btn-record.recording {
+            background: linear-gradient(135deg, #AF52DE 0%, #BF5AF2 100%);
+            box-shadow: 0 4px 15px rgba(175, 82, 222, 0.4);
+        }
+
+        .btn-icon {
+            font-size: 20px;
+        }
+
+        .offline-notice {
+            background: rgba(255, 149, 0, 0.2);
+            color: #FFFFFF;
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .page-indicator {
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-row">
+            <span class="app-logo">📚</span>
+            <span id="book-title">每日跟读</span>
+            <select id="article-selector">
+                <option value="">选择绘本...</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div class="swiper-container">
+            <div class="swiper" id="book-swiper">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide">
+                        <div class="placeholder-slide">
+                            <div class="icon">📖</div>
+                            <p>请从右上角选择一本绘本开始阅读</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="swiper-pagination"></div>
+        <div class="page-indicator" id="page-indicator"></div>
+    </div>
+
+    <footer>
+        <div class="controls">
+            <div class="speed-row">
+                <span class="speed-label">语速</span>
+                <span>🐢</span>
+                <input type="range" id="speed-slider" min="0.8" max="1.5" step="0.1" value="1.0">
+                <span>🐇</span>
+                <span id="speed-value">1.0x</span>
+            </div>
+            <div class="button-row">
+                <button class="btn" id="btn-play"><span class="btn-icon">▶️</span> 播放</button>
+                <button class="btn" id="btn-record"><span class="btn-icon">🎙️</span> 录音</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================================
+        // 全局变量
+        // ============================================================
+        const articleSelector = document.getElementById('article-selector');
+        const bookTitle = document.getElementById('book-title');
+        const btnPlay = document.getElementById('btn-play');
+        const btnRecord = document.getElementById('btn-record');
+        const speedSlider = document.getElementById('speed-slider');
+        const speedValue = document.getElementById('speed-value');
+        const pageIndicator = document.getElementById('page-indicator');
+
+        const BASE_URL = './lesson/';
+        const synth = window.speechSynthesis;
+
+        let swiper = null;
+        let pages = [];
+        let currentPageIndex = 0;
+        let isPlaying = false;
+        let selectedVoice = null;
+        let currentSpeed = 1.0;
+        let currentBookPath = '';
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let currentArticleTitle = '';
+
+        // ============================================================
+        // Swiper 初始化
+        // ============================================================
+        function initSwiper() {
+            if (swiper) {
+                swiper.destroy(true, true);
+            }
+            
+            swiper = new Swiper('#book-swiper', {
+                direction: 'horizontal',
+                loop: false,
+                pagination: {
+                    el: '.swiper-pagination',
+                    clickable: true
+                },
+                on: {
+                    slideChange: function() {
+                        // 用户手动翻页时停止播放
+                        if (isPlaying) {
+                            stopPlayback();
+                        }
+                        currentPageIndex = this.activeIndex;
+                        updatePageIndicator();
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // 语速控制
+        // ============================================================
+        speedSlider.addEventListener('input', function() {
+            currentSpeed = parseFloat(this.value);
+            speedValue.textContent = currentSpeed.toFixed(1) + 'x';
+        });
+
+        // ============================================================
+        // 智能语音选择
+        // ============================================================
+        function loadVoices() {
+            const voices = synth.getVoices();
+            if (voices.length === 0) return;
+
+            let voice = voices.find(function(v) { return v.name === 'Samantha'; });
+            if (!voice) {
+                voice = voices.find(function(v) { return v.name.includes('Google US English'); });
+            }
+            if (!voice) {
+                voice = voices.find(function(v) { return v.lang === 'en-US'; });
+            }
+            if (!voice) {
+                voice = voices.find(function(v) { return v.lang.startsWith('en'); });
+            }
+
+            if (voice) {
+                selectedVoice = voice;
+            }
+        }
+
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
+
+        // ============================================================
+        // 动态加载书架
+        // ============================================================
+        async function loadLibrary() {
+            try {
+                const response = await fetch(BASE_URL + 'library.json');
+                if (!response.ok) throw new Error('Library not found');
+                
+                const library = await response.json();
+                
+                // 清空并重建选项
+                articleSelector.innerHTML = '<option value="">选择绘本...</option>';
+                
+                // 解析 library.json 的 O 数组
+                if (library.O && Array.isArray(library.O)) {
+                    library.O.forEach(function(book) {
+                        const option = document.createElement('option');
+                        option.value = book.path;
+                        option.textContent = '[Level O] ' + book.title;
+                        option.dataset.title = book.title;
+                        articleSelector.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载书架失败:', error);
+                // Fallback: 添加示例选项
+                articleSelector.innerHTML = '<option value="">离线模式</option>';
+            }
+        }
+
+        // ============================================================
+        // 解析 Markdown 为页面数组
+        // 按 --- 分割，每页提取图片和文字
+        // ============================================================
+        function parseMarkdownToPages(markdown, basePath) {
+            const rawPages = markdown.split(/\n---\n|\n---$|^---\n/);
+            const parsedPages = [];
+
+            rawPages.forEach(function(pageContent) {
+                const trimmed = pageContent.trim();
+                if (!trimmed) return;
+
+                // 提取图片 ![...](images/xxx.jpg)
+                const imgMatch = trimmed.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+                let imageSrc = '';
+                let textContent = trimmed;
+
+                if (imgMatch) {
+                    const imgPath = imgMatch[2];
+                    // 构建完整图片路径
+                    if (imgPath.startsWith('http')) {
+                        imageSrc = imgPath;
+                    } else {
+                        imageSrc = basePath + '/' + imgPath;
+                    }
+                    // 移除图片标记，保留文字
+                    textContent = trimmed.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim();
+                }
+
+                // 清理 Markdown 标记
+                textContent = textContent
+                    .replace(/^#+\s*/gm, '')
+                    .replace(/\*\*/g, '')
+                    .replace(/\*/g, '')
+                    .replace(/`/g, '')
+                    .trim();
+
+                if (textContent || imageSrc) {
+                    parsedPages.push({
+                        image: imageSrc,
+                        text: textContent
+                    });
+                }
+            });
+
+            return parsedPages;
+        }
+
+        // ============================================================
+        // 将文本转换为带 span 包裹的单词 HTML
+        // ============================================================
+        function textToWordSpans(text) {
+            const words = text.split(/(\s+)/);
+            let html = '';
+            let wordIndex = 0;
+            
+            words.forEach(function(segment) {
+                if (/^\s+$/.test(segment)) {
+                    html += segment;
+                } else if (segment.length > 0) {
+                    html += '<span class="word" data-index="' + wordIndex + '">' + segment + '</span>';
+                    wordIndex++;
+                }
+            });
+            
+            return html;
+        }
+
+        // ============================================================
+        // 渲染 Swiper 幻灯片
+        // ============================================================
+        function renderSlides() {
+            const wrapper = document.querySelector('.swiper-wrapper');
+            
+            if (pages.length === 0) {
+                wrapper.innerHTML = '<div class="swiper-slide"><div class="placeholder-slide"><div class="icon">📖</div><p>请选择一本绘本开始阅读</p></div></div>';
+                return;
+            }
+
+            let slidesHtml = '';
+            
+            pages.forEach(function(page, index) {
+                const imageStyle = page.image ? 'background-image: url(' + page.image + ')' : '';
+                const textHtml = page.text ? textToWordSpans(page.text) : '<p style="color:#8E8E93;text-align:center;">（本页无文字）</p>';
+                
+                slidesHtml += '<div class="swiper-slide" data-page="' + index + '">' +
+                    '<div class="slide-image" style="' + imageStyle + '"></div>' +
+                    '<div class="slide-text"><p>' + textHtml + '</p></div>' +
+                    '</div>';
+            });
+
+            wrapper.innerHTML = slidesHtml;
+            
+            // 重新初始化 Swiper
+            initSwiper();
+            updatePageIndicator();
+        }
+
+        // ============================================================
+        // 更新页码指示器
+        // ============================================================
+        function updatePageIndicator() {
+            if (pages.length > 0) {
+                pageIndicator.textContent = (currentPageIndex + 1) + ' / ' + pages.length;
+            } else {
+                pageIndicator.textContent = '';
+            }
+        }
+
+        // ============================================================
+        // 书籍选择事件
+        // ============================================================
+        articleSelector.addEventListener('change', async function() {
+            const selectedPath = this.value;
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (!selectedPath) {
+                bookTitle.textContent = '每日跟读';
+                pages = [];
+                renderSlides();
+                return;
+            }
+
+            currentArticleTitle = selectedOption.dataset.title || 'Story';
+            bookTitle.textContent = currentArticleTitle;
+            currentBookPath = BASE_URL + selectedPath;
+
+            try {
+                const response = await fetch(currentBookPath + '/story.md');
+                if (!response.ok) throw new Error('Story not found');
+                
+                const markdown = await response.text();
+                pages = parseMarkdownToPages(markdown, currentBookPath);
+                currentPageIndex = 0;
+                renderSlides();
+                
+            } catch (error) {
+                console.error('加载故事失败:', error);
+                pages = [{
+                    image: '',
+                    text: 'Failed to load story. Please check if the file exists.'
+                }];
+                renderSlides();
+            }
+        });
+
+        // ============================================================
+        // Karaoke 高亮逻辑
+        // ============================================================
+        function buildWordPositions(text) {
+            const positions = [];
+            const words = text.split(/(\s+)/);
+            let charPos = 0;
+            
+            words.forEach(function(segment) {
+                if (!/^\s+$/.test(segment) && segment.length > 0) {
+                    positions.push({
+                        start: charPos,
+                        end: charPos + segment.length - 1
+                    });
+                }
+                charPos += segment.length;
+            });
+            
+            return positions;
+        }
+
+        function findWordIndexByCharIndex(positions, charIndex) {
+            for (let i = 0; i < positions.length; i++) {
+                if (charIndex >= positions[i].start && charIndex <= positions[i].end) {
+                    return i;
+                }
+                if (i < positions.length - 1 && 
+                    charIndex > positions[i].end && 
+                    charIndex < positions[i + 1].start) {
+                    return i + 1;
+                }
+            }
+            return -1;
+        }
+
+        let lastHighlightedIndex = -1;
+        let currentWordSpans = [];
+
+        function highlightWord(index) {
+            if (lastHighlightedIndex >= 0 && lastHighlightedIndex < currentWordSpans.length) {
+                currentWordSpans[lastHighlightedIndex].classList.remove('active-word');
+            }
+            
+            if (index >= 0 && index < currentWordSpans.length) {
+                currentWordSpans[index].classList.add('active-word');
+            }
+            
+            lastHighlightedIndex = index;
+        }
+
+        function clearAllHighlights() {
+            currentWordSpans.forEach(function(span) {
+                span.classList.remove('active-word');
+            });
+            lastHighlightedIndex = -1;
+        }
+
+        // ============================================================
+        // 播放当前页
+        // ============================================================
+        function playCurrentPage() {
+            if (currentPageIndex >= pages.length) {
+                stopPlayback();
+                return;
+            }
+
+            const page = pages[currentPageIndex];
+            if (!page.text) {
+                // 本页无文字，直接跳下一页
+                setTimeout(function() {
+                    goToNextPage();
+                }, 1000);
+                return;
+            }
+
+            // 获取当前页的单词 spans
+            const currentSlide = document.querySelector('.swiper-slide[data-page="' + currentPageIndex + '"]');
+            if (currentSlide) {
+                currentWordSpans = Array.from(currentSlide.querySelectorAll('.word'));
+            }
+
+            const wordPositions = buildWordPositions(page.text);
+
+            const utterance = new SpeechSynthesisUtterance(page.text);
+            utterance.lang = 'en-US';
+            utterance.rate = currentSpeed;
+            utterance.pitch = 1;
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+
+            utterance.onboundary = function(event) {
+                if (event.name === 'word') {
+                    const wordIndex = findWordIndexByCharIndex(wordPositions, event.charIndex);
+                    if (wordIndex >= 0) {
+                        highlightWord(wordIndex);
+                    }
+                }
+            };
+
+            utterance.onend = function() {
+                clearAllHighlights();
+                // 自动翻页
+                if (isPlaying) {
+                    setTimeout(function() {
+                        goToNextPage();
+                    }, 800);
+                }
+            };
+
+            utterance.onerror = function() {
+                clearAllHighlights();
+                stopPlayback();
+            };
+
+            synth.speak(utterance);
+        }
+
+        function goToNextPage() {
+            if (currentPageIndex < pages.length - 1) {
+                currentPageIndex++;
+                swiper.slideTo(currentPageIndex);
+                updatePageIndicator();
+                playCurrentPage();
+            } else {
+                // 读完最后一页
+                stopPlayback();
+            }
+        }
+
+        // ============================================================
+        // 播放控制
+        // ============================================================
+        function startPlayback() {
+            if (pages.length === 0) {
+                alert('请先选择一本绘本');
+                return;
+            }
+            
+            isPlaying = true;
+            btnPlay.innerHTML = '<span class="btn-icon">⏸️</span> 暂停';
+            btnPlay.classList.add('speaking');
+            
+            playCurrentPage();
+        }
+
+        function stopPlayback() {
+            isPlaying = false;
+            synth.cancel();
+            clearAllHighlights();
+            btnPlay.innerHTML = '<span class="btn-icon">▶️</span> 播放';
+            btnPlay.classList.remove('speaking');
+        }
+
+        btnPlay.addEventListener('click', function() {
+            if (isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        });
+
+        // ============================================================
+        // 录音功能
+        // ============================================================
+        btnRecord.addEventListener('click', async function() {
+            if (isRecording) {
+                stopRecording();
+                return;
+            }
+
+            try {
+                await startRecording();
+            } catch (error) {
+                alert('无法访问麦克风，请检查权限设置');
+            }
+        });
+
+        async function startRecording() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = function() {
+                stream.getTracks().forEach(function(track) { track.stop(); });
+                
+                const audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
+                const timestamp = formatTimestamp(new Date());
+                const fileName = (currentArticleTitle || 'recording') + '_' + timestamp + '.m4a';
+                
+                downloadAudio(audioBlob, fileName);
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            
+            btnRecord.innerHTML = '<span class="btn-icon">⏹️</span> 停止';
+            btnRecord.classList.add('recording');
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            
+            isRecording = false;
+            btnRecord.innerHTML = '<span class="btn-icon">🎙️</span> 录音';
+            btnRecord.classList.remove('recording');
+        }
+
+        function downloadAudio(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = fileName;
+            
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        }
+
+        function formatTimestamp(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            return year + month + day + '_' + hours + minutes + seconds;
+        }
+
+        // ============================================================
+        // 初始化
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            initSwiper();
+            loadLibrary();
+        });
+    </script>
+</body>
+</html>
